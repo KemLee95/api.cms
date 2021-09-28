@@ -18,9 +18,4 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // });
 
-Route::get('/get', function() {
-    return response()->json([
-        "success" => true,
-        "result" => 10
-    ],400);
-});
+include_once 'api/auth.php';
