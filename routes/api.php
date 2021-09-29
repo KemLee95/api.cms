@@ -19,3 +19,4 @@ use Illuminate\Support\Facades\Route;
 // });
 
 include_once 'api/auth.php';
+include_once 'api/home.php';

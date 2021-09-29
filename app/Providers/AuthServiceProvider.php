@@ -15,6 +15,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+
+        \App\Models\Post::class => \App\Policies\PostPolicy::class
     ];
 
     /**
@@ -28,9 +30,9 @@ class AuthServiceProvider extends ServiceProvider
 
         //
         Passport::routes();
-        Passport::routes();
-        Passport::tokensExpireIn(now()->addYear(1));
-        Passport::refreshTokensExpireIn(now()->addYear(2));
+        
+        Passport::tokensExpireIn(now()->addDay(15));
+        Passport::refreshTokensExpireIn(now()->addDay(30));
         Passport::personalAccessTokensExpireIn(now()->addYear(1));
 
     }

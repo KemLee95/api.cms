@@ -7,11 +7,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
-
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\HasPermissions;
+
+use App\Models\Post;
+
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -50,5 +53,9 @@ class User extends Authenticatable
 
     public static function getTableName() {
         return with(new static)->getTable();
+    }
+
+    public function post() {
+        return $this->hasMany(Post::class, 'user_id', 'id');
     }
 }

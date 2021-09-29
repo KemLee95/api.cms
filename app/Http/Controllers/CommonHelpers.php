@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-class CommonHelper {
+class CommonHelpers {
   
   public static function generateRandomString($char, $len = 10) {
     

@@ -6,8 +6,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Validator;
 use App\Models\User;
-use App\Http\Controllers\CommonHelper;
+use App\Models\Role;
 
+use App\Http\Controllers\CommonHelpers;
 
 class UserApi extends ApiBase {
 
@@ -32,23 +33,16 @@ class UserApi extends ApiBase {
       ]);
 
       $login = Auth::attempt($credentials, $input['remember_me']);
-      if($login){ 
-
+      if($login){
+        
         $user = Auth::user();
-        $user->token = $user->createToken('LOGIN_API_TOKEN')->accessToken;
-
-        $userUpdate = User::find($user->id);
-        // $vaToken = CommonHelper::generateRandomString($user->token . CommonHelper::getUniqueId(), 50);
-        // $userUpdate->vaToken = $vaToken;
-        $userUpdate->save();
-
+        $user->token = $user->createToken('CMS_LOGIN_API_TOKEN')->accessToken;
         $user->logout = now()->addYear(1);
-
         return response()->json(
           [
             'success' => true,
             'user'=> $user
-          ], 200); 
+          ], 200);
       }
       else{ 
           return response()->json([
@@ -64,7 +58,7 @@ class UserApi extends ApiBase {
         report($e);
         return response()->json([
             'success' => false,
-            'message' => 'Please try again',
+            'message' => 'An error occurred, please contact with administrator!',
             'message_title' => "Request failed",
             'message_code' => 401,
         ], 400 );
@@ -81,6 +75,7 @@ class UserApi extends ApiBase {
           'password' => 'required',
           're_password' => 'required|same:password'
       ]);
+      
       if($validator->fails()) {
         return response()->json([
           "success"=> false,
@@ -92,12 +87,15 @@ class UserApi extends ApiBase {
       $input['password'] = bcrypt($input['password']);
       $user = User::create($input);
 
-      $success['token'] =  $user->createToken('APPLICATION')->accessToken; 
+      $token = $user->createToken('TutsForWeb')->accessToken;
+
       $success['name'] =  $user->name;
+      $success['user_name'] = $user->user_name;
+      $success['token'] = $token;
 
       return response()->json([
         "success" => true,
-        'value' => $success,
+        'user' => $success,
       ], 200);
       
     } catch (\Exception $e) {
@@ -134,14 +132,67 @@ class UserApi extends ApiBase {
     \Log::info("UserApi: login");
     try {
       $input = $req->all();
-      $user = User::find(7);
+      $user = User::find(1)->with('roles')->get();
+      $roles = Role::with('users','permissions')->get();
+      $usr = User::find(2)->isSuperAdmin();
       return response()->json([
-        "success"=> true,
-        "user" => $user,
+        "user" => $usr,
+        "role"=>$roles,
       ], 200);
 
     } catch (\Exception $e) {
         \Log::error("UserApi: can't get the user info", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
+  }
+
+  public function checkUniqueUser(Request $req) {
+    \Log::info("UserApi: check unique user");
+    try {
+
+      $input = $req->all();
+      if($req->has('user_name') || $req->has('email')) {
+
+        if($req->has('user_name')) {
+          $user = User::where("deleted_at", null)->where("user_name", $input['user_name'])->first();
+          if($user) {
+            return response()->json([
+              "success"=> true,
+              "unique" => false
+            ],200);
+          }
+          return response()->json([
+            "success"=> true,
+            "unique" => true
+          ],200);
+        }
+
+        if($req->has('email')) {
+          $user = User::where("deleted_at", null)->where("email", $input['email'])->first();
+          if($user) {
+            return response()->json([
+              "success"=> true,
+              "unique" => false
+            ],200);
+          }
+          return response()->json([
+            "success"=> true,
+            "unique" => true
+          ],200);
+        }
+      }
+      return response()->json([
+        "success"=>false,
+        "message"=> 'Wrong input data',
+        "message_title"=> "The username or email is required",
+      ], 400);
+    } catch (\Exception $e) {
+        \Log::error("UserApi: checking unique user failed", ['eror message' => $e->getMessage()]);
         report($e);
         return response()->json([
             'success' => false,

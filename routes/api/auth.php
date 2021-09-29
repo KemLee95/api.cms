@@ -4,23 +4,26 @@ Route::group([
     'prefix'=> "v1",
     'namespace' => 'App\Http\Controllers\auth'
 ], function(){
-    Route::group([
-        'prefix' => 'get'
-    ], function(){
-        Route::get('get-user', 'UserApi@getUser');
-    });
 
     Route::group([
-        'prefix'=> 'post'
+        'prefix'=> '/post',
     ], function() {
 
         Route::post('login', 'UserApi@login');
         Route::post('register', 'UserApi@register');
+        Route::post('check-unique-user', 'UserApi@checkUniqueUser');
     });
 
     Route::group([
-        'prefix'=>'delete'
-    ], function() {
-        Route::delete('logout', 'UserApi@logout');
+        'prefix' => 'auth/get',
+        'middleware' => ['auth:api']
+    ], function(){
+        Route::get('user', 'UserApi@getUser');
+
+        Route::group([
+            'prefix'=>'delete',
+        ], function() {
+            Route::delete('logout', 'UserApi@logout');
+        });
     });
 });
