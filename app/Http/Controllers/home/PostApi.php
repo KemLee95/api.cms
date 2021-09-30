@@ -9,9 +9,12 @@ use App\Models\Post;
 
 class PostApi extends ApiBase {
 
-  public function getPostList(Request $req){
+  public function show(Request $req) {
+    $this->authorize('view', $post);
+  }
 
-    \Log::info("AdminApi: get the post list");
+  public function getPostList(Request $req){
+    \Log::info("PostApi: get the post list");
     try {
       $input = $req->all();
 
@@ -23,7 +26,7 @@ class PostApi extends ApiBase {
       ], 200);
 
     } catch (\Exception $e) {
-        \Log::error("AdminApi: can't get the post list", ['eror message' => $e->getMessage()]);
+        \Log::error("PostApi: can't get the post list", ['eror message' => $e->getMessage()]);
         report($e);
         return response()->json([
             'success' => false,
@@ -32,5 +35,4 @@ class PostApi extends ApiBase {
         ], 400 );
     }
   }
-
 }

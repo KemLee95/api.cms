@@ -10,6 +10,12 @@ class PostPolicy
 {
     use HandlesAuthorization;
 
+
+    public function before(User $user, $ability) {
+        if($user->hasRole('admin')) {
+            return true;
+        }
+    }
     /**
      * Determine whether the user can view any models.
      *
@@ -19,6 +25,7 @@ class PostPolicy
     public function viewAny(User $user)
     {
         //
+        return false;
     }
 
     /**
@@ -28,16 +35,10 @@ class PostPolicy
      * @param  \App\Models\Post  $post
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function view(?User $user, Post $post)
+    public function view(User $user, Post $post)
     {
         //
-        return (
-            $post->status == Post::STATUS_PUBLISHED || (
-                $user && (
-                    $user->id == $post->user_id || $user->hasPermission('review_post')
-                )
-            )
-        );
+        return ($user->hasPermission('review_post')) && $post->status === Post::STATUS_PUBLISHED || ($user && ( $user->id == $post->user_id));
     }
 
     /**
@@ -62,7 +63,7 @@ class PostPolicy
     public function update(User $user, Post $post)
     {
         //
-        return ($user->id === $post->user_id || $user_id->hasPermission('update_post'));
+        return ($user->id === $post->user_id || $user->hasPermission('update_post'));
     }
 
     /**
@@ -75,7 +76,7 @@ class PostPolicy
     public function delete(User $user, Post $post)
     {
         //
-        return ($user->id === $post->user_id || $user_id->hasPermission('deleted_post'));
+        return ($user->id === $post->user_id || $user->hasPermission('deleted_post'));
 
     }
 
@@ -89,7 +90,7 @@ class PostPolicy
     public function restore(User $user, Post $post)
     {
         //
-        return ($user->id === $post->user_id || $user_id->hasPermission('restore_post'));
+        return ($user->id === $post->user_id || $user->hasPermission('restore_post'));
 
     }
 
@@ -103,13 +104,7 @@ class PostPolicy
     public function forceDelete(User $user, Post $post)
     {
         //
-        return ($user->id === $post->user_id || $user_id->hasPermission('force_delete_post'));
+        return ($user->id === $post->user_id || $user->hasPermission('force_delete_post'));
 
-    }
-
-    public function before($user, $ability) {
-        if($user->isSuperAdmin()) {
-            return true;
-        }
     }
 }

@@ -6,7 +6,7 @@ Route::group([
 ], function(){
 
     Route::group([
-        'prefix'=> '/post',
+        'prefix'=> 'post',
     ], function() {
 
         Route::post('login', 'UserApi@login');

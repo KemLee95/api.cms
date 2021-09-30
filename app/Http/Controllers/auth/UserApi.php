@@ -27,6 +27,7 @@ class UserApi extends ApiBase {
           'errors'=> $validator->errors()->toArray(),
         ], 401);
       }
+
       $credentials = $req->validate([
         'user_name' => 'required',
         'password' => 'required',
@@ -36,17 +37,26 @@ class UserApi extends ApiBase {
       if($login){
         
         $user = Auth::user();
-        $user->token = $user->createToken('CMS_LOGIN_API_TOKEN')->accessToken;
-        $user->logout = now()->addYear(1);
+        $success = User::select("id", "user_name")->find($user->id);
+        $success->logout = now()->addYear(1);
+
+        $isAdmin = User::find($user->id)->hasRole('admin');
+        if($isAdmin) {
+          $success->token = $user->createToken('CMS_LOGIN_API_TOKEN', ['admin'])->accessToken;
+          $success->isAdmin = $isAdmin;
+          $success->url = env('APP_URL') .'admin';
+        } else {
+          $success->token = $user->createToken('CMS_LOGIN_API_TOKEN', ['user'])->accessToken;
+          $success->url = env('APP_URL') .'home';
+        }
         return response()->json(
           [
             'success' => true,
-            'user'=> $user
+            'user'=> $success,
           ], 200);
       }
       else{ 
           return response()->json([
-            'success'=> false,
             'message_title'=> 'Unauthorised',
             'message'=>'The user name or password is incorrect!',
             'message_code'=> 401
@@ -87,11 +97,17 @@ class UserApi extends ApiBase {
       $input['password'] = bcrypt($input['password']);
       $user = User::create($input);
 
-      $token = $user->createToken('TutsForWeb')->accessToken;
+      if($user) {
+        $roleUser = RoleUser::create(2, $user->id);
+        $success['url'] = env('APP_URL') . 'home';
+      }
 
+      $token = $user->createToken('CMS_REGISTER_API_TOKEN', ['user'])->accessToken;
       $success['name'] =  $user->name;
       $success['user_name'] = $user->user_name;
       $success['token'] = $token;
+
+
 
       return response()->json([
         "success" => true,
@@ -132,12 +148,9 @@ class UserApi extends ApiBase {
     \Log::info("UserApi: login");
     try {
       $input = $req->all();
-      $user = User::find(1)->with('roles')->get();
-      $roles = Role::with('users','permissions')->get();
-      $usr = User::find(2)->isSuperAdmin();
+      $usr = User::find(2)->hasRole('admin');
       return response()->json([
         "user" => $usr,
-        "role"=>$roles,
       ], 200);
 
     } catch (\Exception $e) {
