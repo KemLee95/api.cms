@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Collection;
+use App\Models\PostStatus;
 
 class Post extends ModelBase {
   
@@ -14,49 +15,96 @@ class Post extends ModelBase {
   public $table = 'posts';
   public $timestamp = true;
   
-  const STATUS_DRAFT = 'draft';
-  const STATUS_UNPUBLISHED = 'unpublished';
-  const STATUS_PUBLISHED = 'published';
+  public function post_status() {
+    return $this->hasOne(PostStatus::class, 'post_id', 'id');
+  }
 
   public function user() {
     return $this->belongsTo(User::class, 'id', 'user_id');
   }
 
-  public function category() {
-    return $this->belongsTo(Category::class, 'id', 'category_id');
-  }
-
   public static function getPostListForAdmin(Request $req, $paginate = 13) {
+
     if($req->has("paginate")) {
       $paginate = $req->paginate;
     }
+    
     $posts = Post::where("posts.deleted_at", null)
-    ->leftJoin("categories", function($join) {
-      $join->on("categories.id", "posts.category_id");
-    })
+
     ->leftJoin("users", function($join){
       $join->on("users.id", "posts.user_id");
       $join->where("users.deleted_at", null);
     })
+    ->leftJoin('post_status', function($join) {
+      $join->on('post_status.post_id', 'posts.id');
+      $join->where('post_status.deleted_at', null);
+    })
+    ->leftJoin('post_detail', function($join){
+      $join->on('post_detail.post_id', 'posts.id');
+      $join->where('post_detail.deleted_at', null);
+      $join->leftJoin("categories", function($join){
+        $join->on("categories.id", "post_detail.category_id");
+        $join->where("categories.deleted_at", null);
+      });
+    })
     ->select(
       "posts.id",
       "posts.user_id",
-      "posts.title",
-      "posts.content",
-      "posts.status",
+      "users.name as user_name",
+      "post_detail.title as title",
+      "post_detail.content as content",
+      "post_status.name as status",
       "posts.created_at",
+      "post_detail.created_at as updated_at",
+      "categories.id as category_id",
       "categories.name as category_name",
-      "users.name as user_name"
     );
  
     if($req->has('category_id')) {
-      $posts->where("category_id", $req->category_id);
+      $posts->where("categories.id", $req->category_id);
     }
 
-    // $result = $posts->get()->filter(function($item) use ($req) {
-    //   return $req->user()->can('view', $item);
-    // });
-    // return $result;
     return $posts->paginate($paginate);
+  }
+
+  public static function getPostDetail($id) {
+    $post = Post::where("posts.deleted_at", null)
+    ->where("posts.id", $id)
+    ->leftJoin("users", function($join){
+      $join->on("users.id", "posts.user_id");
+      $join->where("users.deleted_at", null);
+    })
+    ->leftJoin('post_status', function($join) {
+      $join->on('post_status.post_id', 'posts.id');
+      $join->where('post_status.deleted_at', null);
+    })
+    ->leftJoin('post_detail', function($join){
+      $join->on('post_detail.post_id', 'posts.id');
+      $join->where('post_detail.deleted_at', null);
+      $join->leftJoin("categories", function($join){
+        $join->on("categories.id", "categories.id");
+        $join->where("categories.deleted_at", null);
+      });
+    })
+    ->select(
+      "posts.id",
+      "posts.user_id",
+      "users.name as user_name",
+      "post_detail.title as title",
+      "post_detail.content as content",
+      "post_status.name as status",
+      "posts.created_at",
+      "post_detail.created_at as updated_at",
+      "categories.id as category_id",
+      "categories.name as category_name",
+    )->first();
+    
+    return $post;
+  }
+
+  public static function savePost($req) {
+    
+    $newPost = new Post;
+
   }
 }

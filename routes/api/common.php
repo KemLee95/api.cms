@@ -5,15 +5,15 @@ Route::group([
 ], function(){
 
   Route::group([
-    'prefix'=> 'auth/',
+    'prefix'=> 'auth',
+    'middleware' => ['auth:api'],
     'namespace' => 'App\Http\Controllers',
-    'middleware' => ['auth:api']
   ], function(){
 
     Route::group([
       'prefix'=> 'get'
     ],function(){
-      Route::get('/categories', 'CommonApi@getCategories');
+      Route::get('categories', 'CommonApi@getCategories');
 
     });
 
@@ -21,6 +21,7 @@ Route::group([
       'prefix'=> 'post'
     ],function(){
 
+      Route::post('/post/save', 'CommonApi@savePost');
     });
   });
 });

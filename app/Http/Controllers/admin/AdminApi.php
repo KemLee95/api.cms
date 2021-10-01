@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\RoleUser;
 use App\Models\Post;
+use App\Models\Category;
+use Illuminate\Support\Facades\Auth;
+
 
 class AdminApi extends ApiBase {
 
@@ -84,25 +87,57 @@ class AdminApi extends ApiBase {
   }
 
   public function getPostList(Request $req) {
-    // \Log::info("AdminApi: get the post list");
-    // try {
+    \Log::info("AdminApi: get the post list");
+    try {
       $input = $req->all();
 
       $data = Post::getPostListForAdmin($req);
+      $categories = Category::where("deleted_at", null)->select("id", "name")->get();
 
       return response()->json([
         "success"=> true,
-        "data" =>$data
+        "data" =>$data,
+        "categories" => $categories
       ], 200);
 
-    // } catch (\Exception $e) {
-    //     \Log::error("AdminApi: can't get the post list", ['eror message' => $e->getMessage()]);
-    //     report($e);
-    //     return response()->json([
-    //         'success' => false,
-    //         'message' => 'An error occurred, please contact with administrator!',
-    //         'message_title' => "Request failed"
-    //     ], 400 );
-    // }
+    } catch (\Exception $e) {
+        \Log::error("AdminApi: can't get the post list", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
+  }
+
+  public function getPostDetail($id, Request $req) {
+    \Log::info("AdminApi: get the post detail");
+    try {
+      $input = $req->all();
+
+      $post = Post::getPostDetail($id);
+      if(Auth::user()->cannot('view', $post)) {
+        return response() -> json([
+          "success" => false,
+          "message_title" => "Unauthorized action",
+          "message" => "Please contact with administrator!",
+        ],403);
+      }
+
+      return response()->json([
+        "success"=> true,
+        "post" =>$post,
+      ], 200);
+
+    } catch (\Exception $e) {
+        \Log::error("AdminApi: can't get the post detail", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
   }
 }

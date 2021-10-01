@@ -14,9 +14,9 @@ Route::group([
       'prefix'=> 'get'
     ],function(){
 
-      Route::get('/role-list', 'AdminApi@getRoleList');
-      Route::get('/post-list', 'AdminApi@getPostList');
-      
+      Route::get('role-list', 'AdminApi@getRoleList');
+      Route::get('post-list', 'AdminApi@getPostList');
+      Route::get('post-detail/{id}', 'AdminApi@getPostDetail');
     });
 
     Route::group([

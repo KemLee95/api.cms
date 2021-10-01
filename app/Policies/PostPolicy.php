@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Post;
+use App\Models\PostStatus;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -16,6 +17,7 @@ class PostPolicy
             return true;
         }
     }
+
     /**
      * Determine whether the user can view any models.
      *
@@ -25,7 +27,7 @@ class PostPolicy
     public function viewAny(User $user)
     {
         //
-        return false;
+        // return false;
     }
 
     /**
@@ -38,7 +40,9 @@ class PostPolicy
     public function view(User $user, Post $post)
     {
         //
-        return ($user->hasPermission('review_post')) && $post->status === Post::STATUS_PUBLISHED || ($user && ( $user->id == $post->user_id));
+
+        return ($user->hasPermission('review_post') && $post->status === PostStatus::STATUS_PUBLISHED) 
+        || ($user && ( $user->id == $post->user_id));
     }
 
     /**
