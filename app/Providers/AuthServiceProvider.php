@@ -34,7 +34,7 @@ class AuthServiceProvider extends ServiceProvider
             'admin' => 'Scope for Admin',
             'user' => 'Scope for User'
         ]);
-        Passport::tokensExpireIn(now()->addDay(15));
+        Passport::tokensExpireIn(now()->addDay(30));
         Passport::refreshTokensExpireIn(now()->addDay(30));
         Passport::personalAccessTokensExpireIn(now()->addYear(1));
 

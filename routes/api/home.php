@@ -1,5 +1,4 @@
 <?php
-        Route::get('post-list', 'PostApi@getPostList');
 
 Route::group([
     'prefix'=> "v1",
@@ -10,8 +9,6 @@ Route::group([
         'prefix' => 'auth/get',
         'middleware' => ['auth:api']
     ], function(){
-
-        Route::get('post-list', 'PostApi@getPostList');
 
     });
 

@@ -27,4 +27,14 @@ class PostDetail extends ModelBase {
     return $this->belongsTo(Category::class, 'id', 'category_id');
   }
 
+  public static function savePostDetail($postId, $req) {
+    $newPostDetail = new PostDetail();
+    $newPostDetail->post_id = $postId;
+    $newPostDetail->title = $req->title;
+    $newPostDetail->content = $req->content;
+    $newPostDetail->category_id = $req->category_id;
+    $newPostDetail->save();
+    
+    return $newPostDetail;
+  }
 }

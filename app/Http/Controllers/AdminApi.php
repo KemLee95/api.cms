@@ -34,6 +34,7 @@ class AdminApi extends ApiBase {
         ], 400 );
     }
   }
+  
   public function register(Request $req) {
     \Log::info("AdminApi: register the new user");
     try {
@@ -91,7 +92,7 @@ class AdminApi extends ApiBase {
     try {
       $input = $req->all();
 
-      $data = Post::getPostListForAdmin($req);
+      $data = Post::getPostList($req);
       $categories = Category::where("deleted_at", null)->select("id", "name")->get();
 
       return response()->json([
@@ -102,36 +103,6 @@ class AdminApi extends ApiBase {
 
     } catch (\Exception $e) {
         \Log::error("AdminApi: can't get the post list", ['eror message' => $e->getMessage()]);
-        report($e);
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred, please contact with administrator!',
-            'message_title' => "Request failed"
-        ], 400 );
-    }
-  }
-
-  public function getPostDetail($id, Request $req) {
-    \Log::info("AdminApi: get the post detail");
-    try {
-      $input = $req->all();
-
-      $post = Post::getPostDetail($id);
-      if(Auth::user()->cannot('view', $post)) {
-        return response() -> json([
-          "success" => false,
-          "message_title" => "Unauthorized action",
-          "message" => "Please contact with administrator!",
-        ],403);
-      }
-
-      return response()->json([
-        "success"=> true,
-        "post" =>$post,
-      ], 200);
-
-    } catch (\Exception $e) {
-        \Log::error("AdminApi: can't get the post detail", ['eror message' => $e->getMessage()]);
         report($e);
         return response()->json([
             'success' => false,

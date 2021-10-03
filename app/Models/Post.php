@@ -23,14 +23,13 @@ class Post extends ModelBase {
     return $this->belongsTo(User::class, 'id', 'user_id');
   }
 
-  public static function getPostListForAdmin(Request $req, $paginate = 13) {
+  public static function getPostList(Request $req, $paginate = 13) {
 
     if($req->has("paginate")) {
       $paginate = $req->paginate;
     }
     
     $posts = Post::where("posts.deleted_at", null)
-
     ->leftJoin("users", function($join){
       $join->on("users.id", "posts.user_id");
       $join->where("users.deleted_at", null);
@@ -64,6 +63,13 @@ class Post extends ModelBase {
       $posts->where("categories.id", $req->category_id);
     }
 
+    if(!Auth::user()->hasRole('admin')) {
+      $posts->whereHas("post_status", function($sql){
+        $sql->where("post_status.deleted_at", null);
+        $sql->where("post_status.name", PostStatus::STATUS_PUBLISHED);
+      })
+      ->orWhere("posts.user_id", Auth::id());
+    }
     return $posts->paginate($paginate);
   }
 
@@ -105,6 +111,9 @@ class Post extends ModelBase {
   public static function savePost($req) {
     
     $newPost = new Post;
+    $newPost->user_id = Auth::id();
+    $newPost->save();
 
+    return $newPost;
   }
 }

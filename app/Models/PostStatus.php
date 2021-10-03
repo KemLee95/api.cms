@@ -19,4 +19,13 @@ class PostStatus extends ModelBase {
   public function posts() {
     return $this->hasOne(Post::class, 'post_id', 'id');
   }
+
+  public static function savePostStatus($postId, $req) {
+    $postStatus = new PostStatus();
+    $postStatus->post_id = $postId;
+    $postStatus->name = $req->status;
+    $postStatus->save();
+
+    return $postStatus;
+  }
 }

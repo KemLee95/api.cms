@@ -2,7 +2,7 @@
 
 Route::group([
     'prefix'=> "v1",
-    'namespace' => 'App\Http\Controllers\auth'
+    'namespace' => 'App\Http\Controllers'
 ], function(){
 
     Route::group([
@@ -20,10 +20,5 @@ Route::group([
     ], function(){
         Route::get('user', 'UserApi@getUser');
 
-        Route::group([
-            'prefix'=>'delete',
-        ], function() {
-            Route::delete('logout', 'UserApi@logout');
-        });
     });
 });

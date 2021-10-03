@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\auth;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\ApiBase;
 use Illuminate\Support\Facades\Auth;
@@ -7,16 +7,17 @@ use Illuminate\Http\Request;
 use Validator;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\RoleUser;
 
 use App\Http\Controllers\CommonHelpers;
 
 class UserApi extends ApiBase {
 
   public function login(Request $req) {
+
     \Log::info("UserApi: login");
     try {
       $input = $req->all();
-      $input['remember_me'] = isset($input['remember_me']) ? true:false;
       $validator = Validator::make($input, [
         'user_name' => 'required',
         'password' => 'required'
@@ -28,6 +29,7 @@ class UserApi extends ApiBase {
         ], 401);
       }
 
+      $input['remember_me'] = isset($input['remember_me']) ? true : false;
       $credentials = $req->validate([
         'user_name' => 'required',
         'password' => 'required',
@@ -48,20 +50,20 @@ class UserApi extends ApiBase {
         } else {
           $success->token = $user->createToken('CMS_LOGIN_API_TOKEN', ['user'])->accessToken;
           $success->url = env('APP_URL') .'home';
+          $success->isAdmin = false;
         }
-        return response()->json(
-          [
+
+        return response()->json([
             'success' => true,
             'user'=> $success,
           ], 200);
       }
-      else{ 
-          return response()->json([
-            'message_title'=> 'Unauthorised',
-            'message'=>'The user name or password is incorrect!',
-            'message_code'=> 401
-        ], 401); 
-      }  
+
+      return response()->json([
+          'message_title'=> 'Unauthorised',
+          'message'=>'The user name or password is incorrect!',
+          'message_code'=> 401
+      ], 401); 
 
     } catch (\Exception $e) {
         \Log::error("UserApi: can't login!", ['eror message' => $e->getMessage()]);
@@ -76,6 +78,7 @@ class UserApi extends ApiBase {
   }
 
   public function register(Request $req) {
+
     \Log::info("UserApi: register");
     try {
       $validator = Validator::make($req->all(), [
@@ -85,7 +88,7 @@ class UserApi extends ApiBase {
           'password' => 'required',
           're_password' => 'required|same:password'
       ]);
-      
+
       if($validator->fails()) {
         return response()->json([
           "success"=> false,
@@ -98,20 +101,19 @@ class UserApi extends ApiBase {
       $user = User::create($input);
 
       if($user) {
-        $roleUser = RoleUser::create(2, $user->id);
-        $success['url'] = env('APP_URL') . 'home';
+        if(Auth::user() && Auth::user()->hasRole('admin')) {
+
+          $roleId = $req->has('role_id') ? $req->role_id : 2;
+          $roleUser = RoleUser::create($roleId, $user->id);
+        } else {
+          $roleUser = RoleUser::create(2, $user->id);
+        }
       }
-
-      $token = $user->createToken('CMS_REGISTER_API_TOKEN', ['user'])->accessToken;
-      $success['name'] =  $user->name;
-      $success['user_name'] = $user->user_name;
-      $success['token'] = $token;
-
-
-
+      
       return response()->json([
         "success" => true,
-        'user' => $success,
+        "message_title" => "Successful!",
+        'message' => "User Registation Successful! Please login",
       ], 200);
       
     } catch (\Exception $e) {

@@ -13,15 +13,18 @@ Route::group([
     Route::group([
       'prefix'=> 'get'
     ],function(){
-      Route::get('categories', 'CommonApi@getCategories');
 
+      Route::get('category-list', 'CategoryApi@getCategories');
+
+      Route::get('post-list', 'PostApi@getPostList');
+      Route::get('post-detail/{id}', 'PostApi@getPostDetail');
     });
 
     Route::group([
       'prefix'=> 'post'
     ],function(){
-
-      Route::post('/post/save', 'CommonApi@savePost');
+      Route::post('save-post', 'PostApi@save');
+      Route::post('delete-post', 'PostApi@delete');
     });
   });
 });
