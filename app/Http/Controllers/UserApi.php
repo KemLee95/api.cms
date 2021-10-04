@@ -8,6 +8,7 @@ use Validator;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\RoleUser;
+use Illuminate\Auth\Events\Registered;
 
 use App\Http\Controllers\CommonHelpers;
 
@@ -52,6 +53,8 @@ class UserApi extends ApiBase {
           $success->url = env('APP_URL') .'home';
           $success->isAdmin = false;
         }
+
+        UserLogin::saveUserLogin($user->id);
 
         return response()->json([
             'success' => true,
@@ -110,6 +113,7 @@ class UserApi extends ApiBase {
         }
       }
       
+      event(new Registered($user));
       return response()->json([
         "success" => true,
         "message_title" => "Successful!",
@@ -127,32 +131,17 @@ class UserApi extends ApiBase {
     }
   }
 
-  public function logout(Request $req) {
-        \Log::info("UserApi: logout");
-    try {
-      Auth::logout();
-      return response()->json([
-        "success"=> true,
-      ], 200);
-
-    } catch (\Exception $e) {
-        \Log::error("UserApi: can't logout", ['eror message' => $e->getMessage()]);
-        report($e);
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred, please contact with administrator!',
-            'message_title' => "Request failed"
-        ], 400 );
-    }
-  }
-
-  public function getUser(Request $req) {
+  public function getUserList(Request $req) {
     \Log::info("UserApi: login");
     try {
       $input = $req->all();
-      $usr = User::find(2)->hasRole('admin');
+      $accounts = User::getUserList($req);
+
+      $user = User::getInactiveUser();
+
       return response()->json([
-        "user" => $usr,
+        "success" => true,
+        "accounts" =>$accounts,
       ], 200);
 
     } catch (\Exception $e) {

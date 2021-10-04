@@ -24,7 +24,7 @@ class PostApi extends ApiBase {
       $input = $req->all();
 
       $post = Post::getPostDetail($id);
-      if(Auth::user()->cannot('view', $post)) {
+      if(Auth::user() && Auth::user()->cannot('view', $post)) {
         return response() -> json([
           "success" => false,
           "message_title" => "Unauthorized action",
@@ -74,8 +74,8 @@ class PostApi extends ApiBase {
   }
   
   public function save(Request $req) {
-    // \Log::info("PostApi: save the new post");
-    // try {
+    \Log::info("PostApi: save the new post");
+    try {
 
       $input = $req->all();
       $validator = Validator::make($input, [
@@ -101,16 +101,16 @@ class PostApi extends ApiBase {
           ], 403);
         }
 
-        $oldPostDetail = PostDetail::where("deleted_at", null)->where("post_id", $post->id)->get();
+        $oldPostDetail = PostDetail::where("deleted_at", null)->where("post_id", $post->id)->first();
         $newPostDetail = PostDetail::savePostDetail($post->id, $req);
         if(!empty($newPostDetail)) {
-          PostDetail::where("id", $oldPostDetail->id)->delete();
+          $deletePostDetail = PostDetail::find($oldPostDetail->id)->delete();
         }
 
-        $oldPostStatus = PostStatus::where("deleted_at", null)->where("post_id", $post->id)->get();
+        $oldPostStatus = PostStatus::where("deleted_at", null)->where("post_id", $post->id)->first();
         $newPostStatus = PostStatus::savePostStatus($post->id, $req);
         if(!empty($newPostStatus)) {
-          PostStatus::where("id", $oldPostStatus->id)->delete();
+          $deletePostStatus = PostStatus::find($oldPostStatus->id)->delete();
         }
         $post->update();
 
@@ -141,29 +141,59 @@ class PostApi extends ApiBase {
         "message" => "Save the post successfully!",
       ]);
 
-    // } catch (\Exception $e) {
-    //     \Log::error("PostApi: can't save the new post", ['eror message' => $e->getMessage()]);
-    //     report($e);
-    //     return response()->json([
-    //         'success' => false,
-    //         'message' => 'An error occurred, please contact with administrator!',
-    //         'message_title' => "Request failed"
-    //     ], 400 );
-    // }
+    } catch (\Exception $e) {
+        \Log::error("PostApi: can't save the new post", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
   }
 
   public function delete(Request $req) {
     \Log::info("PostApi: delete the post");
     try {
+
       $input = $req->all();
+      $validator = Validator::make($input, [
+        'post_id' => 'required',
+      ]);
+      if($validator->fails()) {
+        return response()->json([
+          'success' => false,
+          'errors'=> $validator->errors()->toArray(),
+        ], 401);
+      }
 
-      $data = Post::getPostList($req);
+      $post = Post::where("deleted_at", null)->where("id", $req->post_id)->first();
+      if(Auth::user()->cannot('delete', $post)) {
+        return response() -> json([
+          "success" => false,
+          "message_title" => "Unauthorized action",
+          "message" => "Please contact with administrator!",
+        ], 403);
+      }
 
+      $postDetail = PostDetail::where("deleted_at", null)->where("post_id", $req->post_id)->first();
+      $postStatus = PostStatus::where("deleted_at", null)->where("post_id", $req->post_id)->first();
+
+      if(!empty($post) && !empty($postDetail) && !empty($postStatus)) {
+        Post::find($post->id)->delete();
+        PostDetail::find($postDetail->id)->delete();
+        PostStatus::find($postStatus->id)->delete();
+        return response()->json([
+          "success"=> true,
+          "message_title" => "Successful!",
+          "message" => "Delete the post successfully!"
+        ], 200);
+      }
       return response()->json([
-        "success"=> true,
-        "message_title" => "Successful!",
-        "message" => "Delete the post successfully!"
-      ], 200);
+        "success" => false,
+        "message" => "Can not get the data for this post, Please contact with administrator!",
+        "message_title" => "Request failed"
+      ], 400);
 
     } catch (\Exception $e) {
         \Log::error("PostApi: can't delete the post", ['eror message' => $e->getMessage()]);

@@ -11,8 +11,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasPermissions;
 
 use App\Models\Post;
+use App\Models\Role;
+use App\Models\UserLogin;
+use Carbon\Carbon;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasPermissions;
 
@@ -57,5 +60,44 @@ class User extends Authenticatable
 
     public function post() {
         return $this->hasMany(Post::class, 'user_id', 'id');
+    }
+
+    public function roles() {
+        return $this->belongsToMany(Role::class, "role_user", "role_id", "user_id");
+    }
+
+    public function user_login() {
+        return $this->hasMany(UserLogin::class, "user_id", "id");
+    }
+
+    public static function getUserList($req) {
+        $users = User::where("users.deleted_at", null)
+        ->with("roles", function($sql) {
+            // $sql->where("deleted_at, null");
+            $sql->select("id", "name");
+            $sql->with("permissions", function($sql) {
+                // $sql->where("deleted_at, null");
+                $sql->select("id", "name");
+            });
+        })
+        ->select(
+            "users.id",
+            "users.name",
+            "users.user_name",
+            "users.email",
+            "users.created_at",
+            "users.updated_at",
+        );
+        return $users->get();
+    }
+
+    public static function getInactiveUser() {
+
+        $inactiveUsers = User::where("users.deleted_at", null)
+        ->whereDoesntHave('user_login', function($sql){
+          $sql->where("created_at", ">", Carbon::yesterday());
+        }, ">=", 1);
+        
+        return $inactiveUsers->get();
     }
 }

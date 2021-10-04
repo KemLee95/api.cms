@@ -7,7 +7,7 @@ Route::group([
   Route::group([
     'prefix'=> 'auth/admin',
     'namespace' => 'App\Http\Controllers',
-    'middleware' => ['auth:api']
+    'middleware' => ['auth:api', 'scope:admin']
   ], function(){
 
     Route::group([
@@ -15,9 +15,8 @@ Route::group([
     ],function(){
 
       Route::get('role-list', 'RoleApi@getRoleList');
-
-      Route::get('post-list', 'AdminApi@getPostList');
-      // Route::get('post-detail/{id}', 'AdminApi@getPostDetail');
+      Route::get('account-list', 'UserApi@getUserList');
+      
     });
   });
 });

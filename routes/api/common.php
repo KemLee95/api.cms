@@ -1,23 +1,29 @@
 <?php
 
 Route::group([
-  'prefix'=> 'v1'
+  'prefix'=> 'v1',
+  'namespace' => 'App\Http\Controllers',
 ], function(){
+
+  Route::group([
+    "prefix" => "get"
+  ], function(){
+    Route::get('post-list', 'PostApi@getPostList');
+    Route::get('category-list', 'CategoryApi@getCategories');
+    Route::get('post-detail/{id}', 'PostApi@getPostDetail');
+  });
 
   Route::group([
     'prefix'=> 'auth',
     'middleware' => ['auth:api'],
-    'namespace' => 'App\Http\Controllers',
+
   ], function(){
 
     Route::group([
       'prefix'=> 'get'
     ],function(){
+      Route::get('reader-tracking', 'ReaderCounterApi@tracking');
 
-      Route::get('category-list', 'CategoryApi@getCategories');
-
-      Route::get('post-list', 'PostApi@getPostList');
-      Route::get('post-detail/{id}', 'PostApi@getPostDetail');
     });
 
     Route::group([
