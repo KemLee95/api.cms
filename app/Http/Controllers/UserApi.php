@@ -9,139 +9,20 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\RoleUser;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Hash;
 
 use App\Http\Controllers\CommonHelpers;
 
 class UserApi extends ApiBase {
 
-  public function login(Request $req) {
-
-    \Log::info("UserApi: login");
-    try {
-      $input = $req->all();
-      $validator = Validator::make($input, [
-        'user_name' => 'required',
-        'password' => 'required'
-      ]);
-      if($validator->fails()) {
-        return response()->json([
-          'success' => false,
-          'errors'=> $validator->errors()->toArray(),
-        ], 401);
-      }
-
-      $input['remember_me'] = isset($input['remember_me']) ? true : false;
-      $credentials = $req->validate([
-        'user_name' => 'required',
-        'password' => 'required',
-      ]);
-
-      $login = Auth::attempt($credentials, $input['remember_me']);
-      if($login){
-        
-        $user = Auth::user();
-        $success = User::select("id", "user_name")->find($user->id);
-        $success->logout = now()->addYear(1);
-
-        $isAdmin = User::find($user->id)->hasRole('admin');
-        if($isAdmin) {
-          $success->token = $user->createToken('CMS_LOGIN_API_TOKEN', ['admin'])->accessToken;
-          $success->isAdmin = $isAdmin;
-          $success->url = env('APP_URL') .'admin';
-        } else {
-          $success->token = $user->createToken('CMS_LOGIN_API_TOKEN', ['user'])->accessToken;
-          $success->url = env('APP_URL') .'home';
-          $success->isAdmin = false;
-        }
-
-        UserLogin::saveUserLogin($user->id);
-
-        return response()->json([
-            'success' => true,
-            'user'=> $success,
-          ], 200);
-      }
-
-      return response()->json([
-          'message_title'=> 'Unauthorised',
-          'message'=>'The user name or password is incorrect!',
-          'message_code'=> 401
-      ], 401); 
-
-    } catch (\Exception $e) {
-        \Log::error("UserApi: can't login!", ['eror message' => $e->getMessage()]);
-        report($e);
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred, please contact with administrator!',
-            'message_title' => "Request failed",
-            'message_code' => 401,
-        ], 400 );
-    }
-  }
-
-  public function register(Request $req) {
-
-    \Log::info("UserApi: register");
-    try {
-      $validator = Validator::make($req->all(), [
-          'name' => 'required',
-          'email' => 'required|email',
-          'user_name' => 'required',
-          'password' => 'required',
-          're_password' => 'required|same:password'
-      ]);
-
-      if($validator->fails()) {
-        return response()->json([
-          "success"=> false,
-          'errors'=> $validator->errors()->toArray(),
-        ], 401);
-      }
-
-      $input = $req->all();
-      $input['password'] = bcrypt($input['password']);
-      $user = User::create($input);
-
-      if($user) {
-        if(Auth::user() && Auth::user()->hasRole('admin')) {
-
-          $roleId = $req->has('role_id') ? $req->role_id : 2;
-          $roleUser = RoleUser::create($roleId, $user->id);
-        } else {
-          $roleUser = RoleUser::create(2, $user->id);
-        }
-      }
-      
-      event(new Registered($user));
-      return response()->json([
-        "success" => true,
-        "message_title" => "Successful!",
-        'message' => "User Registation Successful! Please login",
-      ], 200);
-      
-    } catch (\Exception $e) {
-        \Log::error("UserApi: can't register!", ['eror message' => $e->getMessage()]);
-        report($e);
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred, please contact with administrator!',
-            'message_title' => "Request failed"
-        ], 400);
-    }
-  }
-
   public function getUserList(Request $req) {
     \Log::info("UserApi: login");
     try {
       $input = $req->all();
-      $accounts = User::getUserList($req);
-
-      $user = User::getInactiveUser();
-
+      $data = User::getUserList($req);
       return response()->json([
         "success" => true,
-        "accounts" =>$accounts,
+        "data" =>$data,
       ], 200);
 
     } catch (\Exception $e) {
@@ -163,30 +44,39 @@ class UserApi extends ApiBase {
       if($req->has('user_name') || $req->has('email')) {
 
         if($req->has('user_name')) {
-          $user = User::where("deleted_at", null)->where("user_name", $input['user_name'])->first();
-          if($user) {
+          $userSql = User::where("deleted_at", null)->where("user_name", $input['user_name']);
+          if($req->has("user_id")) {
+            $userSql->where("id", "!=", $req->user_id);
+          }
+          $user = $userSql->count();
+
+          if(empty($user)) {
             return response()->json([
               "success"=> true,
-              "unique" => false
+              "unique" => true
             ],200);
           }
           return response()->json([
             "success"=> true,
-            "unique" => true
+            "unique" => false
           ],200);
         }
 
         if($req->has('email')) {
-          $user = User::where("deleted_at", null)->where("email", $input['email'])->first();
-          if($user) {
+          $userSql = User::where("deleted_at", null)->where("email", $input['email']);
+          if($req->has("user_id")) {
+            $userSql->where("id", "!=", $req->user_id);
+          }
+          $user = $userSql->count();
+          if(empty($user)) {
             return response()->json([
               "success"=> true,
-              "unique" => false
+              "unique" => true
             ],200);
           }
           return response()->json([
             "success"=> true,
-            "unique" => true
+            "unique" => false
           ],200);
         }
       }
@@ -197,6 +87,117 @@ class UserApi extends ApiBase {
       ], 400);
     } catch (\Exception $e) {
         \Log::error("UserApi: checking unique user failed", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
+  }
+
+  public function getUserInfo(Request $req) {
+    \Log::info("UserApi: get the user info");
+    try {
+
+      $validator = Validator::make($req->all(), [
+        'user_id' => 'required',
+      ]);
+
+      if($validator->fails()) {
+        return response()->json([
+          "success"=> false,
+          'errors'=> $validator->errors()->toArray(),
+        ], 401);
+      }
+      
+      $user = User::where("deleted_at", null)->find($req->user_id);
+      if(!Auth::user() || Auth::user()->cannot("view", $user)) {
+        return response()->json([
+          "success"=>false,
+          "message"=> "You don’t have permission to view!",
+          "message_title" => "Request failed"
+        ], 401);
+      }
+
+      $userId = $req->user_id;
+      $userInfo = User::getUserInfo($userId);
+      $userInfo->isAdmin = User::find($userId)->hasRole('admin');
+      $roles = Role::select("id", "name")->get();
+      return response()->json([
+        "success" => true,
+        "userInfo" => $userInfo,
+        "roles" => $roles
+      ]);
+
+    } catch (\Exception $e) {
+        \Log::error("UserApi: cant get the user info", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
+  }
+
+  public function updateUserInfo(Request $req) {
+    \Log::info("UserApi: update the user info");
+    try {
+      $validator = Validator::make($req->all(), [
+        'user_id' => 'required',
+        "name" => 'required',
+        'user_name' => 'required',
+        'email' => 'required|email',
+        'password' => 'required',
+        'role_id' => 'required',
+      ]);
+
+      if($validator->fails()) {
+        return response()->json([
+          "success"=> false,
+          'errors'=> $validator->errors()->toArray(),
+        ], 401);
+      }
+
+      $user =  User::find($req->user_id);
+      if (!Hash::check($req->password, $user->password)) {
+        return response()->json([
+          "success" => false,
+          "messeage" => 'Password is incorrect!',
+          "message" => "Request failed"
+        ],401);
+      }
+
+      if(Auth::user()->can("update", $user)) {
+        $user->name = $req->name;
+        $user->user_name = $req->user_name;
+        
+        $user->email = $req->email;
+        $user->created_at = now();
+        if($user->email !== $req->email) {
+          $user->email = $req->email;
+          $user->email_verified_at = null;
+        }
+        $user->save();
+        $oldRoleUser = RoleUser::where("deleted_at", null)->where("user_id", $user->id)->pluck("id");
+        $roleIdList = json_decode($req->role_id);
+        for($idx = 0; $idx < count($roleIdList); $idx++){
+          RoleUser::saveRoleUser($roleIdList[$idx], $user->id);
+        }
+        for($idx = 0; $idx < count($oldRoleUser); $idx++) {
+          RoleUser::find($oldRoleUser[$idx])->delete();
+        }
+      }
+
+      return response()->json([
+        "success" => true,
+        "message" => "Update user info successfuly!",
+        "message_title" => "Successful"
+      ],200);
+
+    } catch (\Exception $e) {
+        \Log::error("UserApi: can't update the user info", ['eror message' => $e->getMessage()]);
         report($e);
         return response()->json([
             'success' => false,

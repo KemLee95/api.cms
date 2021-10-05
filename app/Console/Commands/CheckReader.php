@@ -37,7 +37,7 @@ class CheckNoReader extends Command
      */
     public function handle()
     {
-        $noReader = Post::noReaderPost();
+        return 0;
 
     }
 }

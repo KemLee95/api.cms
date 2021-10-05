@@ -11,6 +11,7 @@ class Permission extends ModelBase {
   public $timestamps = false;
 
   public function roles() {
-    return $this->belongsToMany(Role::class, 'permission_role', 'role_id', 'permission_id');
+    return $this->belongsToMany(Role::class, 'permission_role', 'role_id', 'permission_id')
+      ->where("permission_role.deleted_at", null);
   }
 }

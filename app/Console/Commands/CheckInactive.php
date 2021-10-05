@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\User;
+
 
 class CheckInactive extends Command
 {
@@ -37,6 +37,6 @@ class CheckInactive extends Command
      * @return int
      */
     public function handle() {
-        $inactiveUser = User::getInactiveUser();
+        return 0;
     }
 }

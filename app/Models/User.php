@@ -9,6 +9,9 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasPermissions;
+use App\Notifications\ResetPasswordNotification;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\Post;
 use App\Models\Role;
@@ -63,21 +66,32 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function roles() {
-        return $this->belongsToMany(Role::class, "role_user", "role_id", "user_id");
+        return $this->belongsToMany(Role::class, "role_user", "user_id", "role_id")
+        ->where("role_user.deleted_at", null);
     }
 
     public function user_login() {
         return $this->hasMany(UserLogin::class, "user_id", "id");
     }
 
-    public static function getUserList($req) {
+    public function sendPasswordResetNotification($token) {
+        $url = env('APP_URL') .'api/v1/' .'reset-password?token=' . $token;
+        $this->notify(new ResetPasswordNotification($url));
+    }
+
+    public function sendEmailVerificationNotification(){
+        $this->notify(new VerifyEmail);
+    }
+
+    public static function getUserList($req, $paginate = 10) {
+        if($req->has($paginate)) {
+            $paginate = $req->paginate;
+        }
         $users = User::where("users.deleted_at", null)
         ->with("roles", function($sql) {
-            // $sql->where("deleted_at, null");
-            $sql->select("id", "name");
+            $sql->select("roles.id", "roles.name");
             $sql->with("permissions", function($sql) {
-                // $sql->where("deleted_at, null");
-                $sql->select("id", "name");
+                $sql->select("permissions.id", "permissions.name");
             });
         })
         ->select(
@@ -87,8 +101,30 @@ class User extends Authenticatable implements MustVerifyEmail
             "users.email",
             "users.created_at",
             "users.updated_at",
+            "users.email_verified_at"
         );
-        return $users->get();
+        return $users->paginate($paginate);
+    }
+
+    public static function getUserInfo($userId) {
+        $users = User::where("users.deleted_at", null)
+        ->where("users.id", $userId)
+        ->with("roles", function($sql) {
+            $sql->select("roles.id", "roles.name");
+            $sql->with("permissions", function($sql) {
+                $sql->select("permissions.id", "permissions.name");
+            });
+        })
+        ->select(
+            "users.id",
+            "users.name",
+            "users.user_name",
+            "users.email",
+            "users.created_at",
+            "users.updated_at",
+            "users.email_verified_at"
+        );
+        return $users->first();
     }
 
     public static function getInactiveUser() {
