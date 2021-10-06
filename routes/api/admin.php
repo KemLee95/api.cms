@@ -16,7 +16,12 @@ Route::group([
 
       Route::get('role-list', 'RoleApi@getRoleList');
       Route::get('account-list', 'UserApi@getUserList');
-      
+    });
+
+    Route::group([
+      'prefix' => 'post'
+    ], function(){
+      Route::post('delete-account', 'UserApi@deleteUser');
     });
   });
 });

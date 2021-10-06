@@ -11,7 +11,7 @@ Route::group([
 
 
     Route::get("/verify-email/{id}/{hash}", [EmailVerificationController::class, 'verify'])
-        ->middleware(['signed'])->name('verification.verify');
+        ->middleware(['auth:api', 'signed'])->name('verification.verify');
     
     Route::post("/email/verification-notification", [EmailVerificationController::class, 'sendVerificationEmail'])
         ->middleware(["auth:api", "throttle:6,1"])->name("verification.send");

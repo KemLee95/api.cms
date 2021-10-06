@@ -28,7 +28,7 @@ class Kernel extends ConsoleKernel
     {
         //
         $schedule->command('check:inactive')->daily();
-        $schedule->command('check:noreader')->daily();
+        $schedule->command('check:noreader')->dailyAt('23:59');
     }
 
     /**

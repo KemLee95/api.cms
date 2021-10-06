@@ -42,21 +42,21 @@ class EmailVerificationController extends ControllerBase {
     }
   }
 
-  public function verify($id, $hash, Request $req) {
+  public function verify(EmailVerificationRequest $req) {
     
     \Log::info("EmailVerificationController: verify");
     try {
-      $user = User::find($id);
+      $user = Auth::user();
 
-      if (! hash_equals((string) $hash,
-        sha1($user->getEmailForVerification()))) {
+      // if (! hash_equals((string) $hash,
+      //   sha1($user->getEmailForVerification()))) {
 
-        return response() ->json([
-          "success" => false,
-          'message' => 'An error occurred, please contact with administrator!',
-          'message_title' => "Request failed"
-        ]);
-      }
+      //   return response() ->json([
+      //     "success" => false,
+      //     'message' => 'An error occurred, please contact with administrator!',
+      //     'message_title' => "Request failed"
+      //   ]);
+      // }
 
       if($user->hasVerifiedEmail()){
         return view("success")->with("message", "Already Verified!");

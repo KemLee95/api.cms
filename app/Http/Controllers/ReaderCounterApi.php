@@ -14,7 +14,7 @@ use App\Models\ReaderCounterDetail;
 class ReaderCounterApi extends ApiBase {
 
   public function tracking(Request $req) {
-    \Log::info("ReaderCounterApi: save the new post");
+    \Log::info("ReaderCounterApi: track the post");
     try {
 
       $input = $req->all();
@@ -27,6 +27,7 @@ class ReaderCounterApi extends ApiBase {
           'errors'=> $validator->errors()->toArray(),
         ], 401);
       }
+
       $post = Post::where("deleted_at", null)->find($req->post_id);
       if(empty($post)) {
         return response() -> json([
@@ -34,6 +35,14 @@ class ReaderCounterApi extends ApiBase {
           "message_title" => "Request failed",
           "message" => "Can not get data, Please contact with administrator!",
           $post
+        ]);
+      }
+
+      if(Auth::user() && Auth::user()->hasRole('admin') || Auth::user() && Auth::id() === $post->user_id) {
+        return response()->json([
+          "success" => true,
+          "message" => "No need to track",
+          "message_title" => "Successful!"
         ]);
       }
 

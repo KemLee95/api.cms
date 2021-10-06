@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-
+use App\Models\User;
+use App\Mail\ReminderMailForUser;
+use App\Jobs\SendReminderMailForUser;
 
 class CheckInactive extends Command
 {
@@ -37,6 +39,15 @@ class CheckInactive extends Command
      * @return int
      */
     public function handle() {
-        return 0;
+
+        $inactiveUser = User::getInactiveUser();
+        foreach($inactiveUser as $key => $user) {
+            $toAddress = $user->email;
+            $name = $user->user_name;
+ 
+            $mail = new ReminderMailForUser($name);
+
+            SendReminderMailForUser::dispatch($toAddress, $mail);
+        }
     }
 }

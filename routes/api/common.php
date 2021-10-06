@@ -8,6 +8,7 @@ Route::group([
   Route::group([
     "prefix" => "get"
   ], function(){
+
     Route::get('post-list', 'PostApi@getPostList');
     Route::get('category-list', 'CategoryApi@getCategories');
     Route::get('post-detail/{id}', 'PostApi@getPostDetail');
@@ -22,6 +23,8 @@ Route::group([
     Route::group([
       'prefix'=> 'get'
     ],function(){
+
+      Route::get('post-list', 'PostApi@getPostList');
       Route::get('reader-tracking', 'ReaderCounterApi@tracking');
 
     });

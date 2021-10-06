@@ -84,7 +84,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public static function getUserList($req, $paginate = 10) {
-        if($req->has($paginate)) {
+        if($req->has("paginate")) {
             $paginate = $req->paginate;
         }
         $users = User::where("users.deleted_at", null)
@@ -130,10 +130,35 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function getInactiveUser() {
 
         $inactiveUsers = User::where("users.deleted_at", null)
+        ->whereDoesntHave("roles", function($sql){
+            $sql->whereIn("roles.id", ['1']);
+        })
+        ->whereNotNull("users.email_verified_at")
         ->whereDoesntHave('user_login', function($sql){
           $sql->where("created_at", ">", Carbon::yesterday());
-        }, ">=", 1);
+        }, ">=", 1)
+        ->select(
+            "users.id",
+            "users.name as user_name",
+            "users.email",
+        );
         
         return $inactiveUsers->get();
+    }
+    
+    public static function getVerifiedUserListByRoleId($roleId = 2) {
+
+        $admins = User::where("users.deleted_at", null)
+        ->whereNotNull("users.email_verified_at")
+        ->whereHas("roles", function($sql) use($roleId) {
+            $sql->where("roles.id", $roleId);
+        })
+        ->select(
+            "users.id as user_id",
+            "users.name as user_name",
+            "users.email"
+        );
+
+        return $admins->get();
     }
 }

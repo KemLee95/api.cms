@@ -1,8 +1,12 @@
 <?php
-
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use App\Jobs\SendEmailForAdmin;
+
+use App\Models\User;
+use App\Models\Post;
+use App\Mail\MailForAdmins;
 
 class CheckNoReader extends Command
 {
@@ -35,9 +39,17 @@ class CheckNoReader extends Command
      *
      * @return int
      */
-    public function handle()
-    {
-        return 0;
+    public function handle() {
 
+        $admins = User::getVerifiedUserListByRoleId(1);
+        $posts = Post::noReaderPost();
+        foreach($admins as $key => $admin) {
+            $toAddress = $admin->email;
+            $name = $admin->user_name;
+
+            $mail = new MailForAdmins($name, $posts);
+
+            SendEmailForAdmin::dispatch($toAddress, $mail);
+        }
     }
 }

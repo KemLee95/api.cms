@@ -10,7 +10,7 @@ use App\Models\Post;
 use App\Models\PostDetail;
 use App\Models\PostStatus;
 use App\Models\Category;
-
+use App\Models\User;
 
 class PostApi extends ApiBase {
 

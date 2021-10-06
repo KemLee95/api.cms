@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Validator;
 use App\Models\User;
+use App\Models\UserStatus;
 use App\Models\Role;
 use App\Models\RoleUser;
 use Illuminate\Auth\Events\Registered;
@@ -141,6 +142,50 @@ class UserApi extends ApiBase {
     }
   }
 
+  public function deleteUser(Request $req) {
+    \Log::info("UserApi: get the user info");
+    try {
+
+      $validator = Validator::make($req->all(), [
+        'user_id' => 'required',
+      ]);
+      if($validator->fails()) {
+        return response()->json([
+          "success"=> false,
+          'errors'=> $validator->errors()->toArray(),
+        ], 400);
+      }
+      $user = User::where("deleted_at", null)->find($req->user_id);
+      if(Auth::user() && Auth::user()->cannot("delete", $user)) {
+        return response() -> json([
+          "success" => false,
+          "message_title" => "Unauthorized action",
+          "message" => "Please contact with administrator!",
+        ], 403);
+      }
+      
+      $oldUserStatus = UserStatus::where("deleted_at", null)->find($req->user_id);
+      $newUserStatus = UserStatus::saveUserStatus($req->user_id, UserStatus::DISABLED_STATE);
+      if(!empty($newUserStatus)) {
+        $oldUserStatus->delete();
+      }
+
+      return response()->json([
+        "success" => true,
+        "message" => "Delete the user successfully!",
+        "message_title" => "Successful"
+      ]);
+    } catch (\Exception $e) {
+        \Log::error("UserApi: cant get the user info", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400);
+    }
+  }
+  
   public function updateUserInfo(Request $req) {
     \Log::info("UserApi: update the user info");
     try {

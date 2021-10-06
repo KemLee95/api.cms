@@ -29,7 +29,7 @@ class Post extends ModelBase {
     return $this->hasMany(ReaderCounter::class, "post_id", "id");
   }
 
-  public static function getPostList(Request $req, $paginate = 13) {
+  public static function getPostList(Request $req, $paginate = 5) {
 
     if($req->has("paginate")) {
       $paginate = $req->paginate;
@@ -70,18 +70,22 @@ class Post extends ModelBase {
       $posts->where("categories.id", $req->category_id);
     }
 
-    if(Auth::user() && !Auth::user()->hasRole('admin')) {
-      $posts->whereHas("post_status", function($sql){
-        $sql->where("post_status.deleted_at", null);
-        $sql->where("post_status.name", PostStatus::STATUS_PUBLISHED);
-      })
-      ->orWhere("posts.user_id", Auth::id());
-    } else {
-      $posts->whereHas("post_status", function($sql){
+    if(Auth::user() && Auth::user()->hasRole('admin')) {
+
+      return $posts->paginate($paginate);
+    } elseif(Auth::user()) {
+
+      $posts->where("posts.user_id", Auth::id())
+      ->orWhereHas("post_status", function($sql){
         $sql->where("post_status.deleted_at", null);
         $sql->where("post_status.name", PostStatus::STATUS_PUBLISHED);
       });
     }
+
+    $posts->whereHas("post_status", function($sql){
+      $sql->where("post_status.deleted_at", null);
+      $sql->where("post_status.name", PostStatus::STATUS_PUBLISHED);
+    });
     return $posts->paginate($paginate);
   }
 
@@ -130,17 +134,27 @@ class Post extends ModelBase {
   }
 
   public static function noReaderPost() {
+
+    $start = (new Carbon('now'))->hour(0)->minute(0)->second(0);
+    $end = (new Carbon('now'))->hour(23)->minute(59)->second(59);
+
     $noReaderPosts = Post::where("posts.deleted_at", null)
+    ->leftJoin("post_detail", function($join) {
+      $join->where("post_detail.deleted_at", null);
+      $join->on("post_detail.post_id", "posts.id");
+    })
     ->leftJoin("users", "users.id", "=", "posts.user_id")
-    ->whereDoesntHave("reader_counter", function($sql){
-      $sql->where("created_at", ">", Carbon::yesterday());
-    },">", 1)
+    ->whereDoesntHave("reader_counter", function($sql) use($start, $end) {
+      $sql->whereBetween("reader_counter.created_at", [$start , $end]);
+    })
     ->select(
-      "posts.id",
+      "posts.id as post_id",
       "posts.user_id",
-      "users.email",
-      "users.name"
+      "post_detail.title",
+      "users.email as user_email",
+      "users.name as user_name"
     );
+    
     return $noReaderPosts->get();
   }
 }

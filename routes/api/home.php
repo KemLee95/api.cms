@@ -2,7 +2,7 @@
 
 Route::group([
     'prefix'=> "v1",
-    'namespace' => 'App\Http\Controllers\home'
+    'namespace' => 'App\Http\Controllers'
 ], function(){
 
     Route::group([

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Validator;
 use App\Models\User;
+use App\Models\UserStatus;
 use App\Models\Role;
 use App\Models\RoleUser;
 use App\Models\UserLogin;
@@ -123,6 +124,7 @@ class AuthController extends ControllerBase {
         } else {
           $roleUser = RoleUser::saveRoleUser(2, $user->id);
         }
+        UserStatus::saveUserStatus($user->id, UserStatus::ENABLED_STATE);
       }
       //
       event(new Registered($user));
