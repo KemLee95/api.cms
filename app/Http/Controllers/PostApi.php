@@ -93,7 +93,8 @@ class PostApi extends ApiBase {
 
       if($req->has('id')) {
         $post = Post::getPostDetail($req->id);
-        if(Auth::user()->cannot('update', $post)) {
+
+        if(Auth::user()->cannot('update', $post) && $post->status !== PostStatus::STATUS_DRAFT) {
           return response() -> json([
             "success" => false,
             "message_title" => "Unauthorized action",
@@ -125,7 +126,7 @@ class PostApi extends ApiBase {
         return response() -> json([
           "success" => false,
           "message_title" => "Unauthorized action",
-          "message" => "Please contact with administrator!",
+          "message" => "Please verify email before creating your posts!",
         ], 403);
       }
 

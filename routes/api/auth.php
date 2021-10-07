@@ -9,15 +9,17 @@ Route::group([
     'namespace' => 'App\Http\Controllers'
 ], function(){
 
-
-    Route::get("/verify-email/{id}/{hash}", [EmailVerificationController::class, 'verify'])
-        ->middleware(['auth:api', 'signed'])->name('verification.verify');
-    
     Route::post("/email/verification-notification", [EmailVerificationController::class, 'sendVerificationEmail'])
         ->middleware(["auth:api", "throttle:6,1"])->name("verification.send");
+
+    Route::get("/verify-email/{id}/{hash}", [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed'])->name('verification.verify');
     
-    Route::post('/forgot-password', [NewPasswordController::class, 'forgotPassword']);
-    Route::post('/reset-password', [NewPasswordController::class, 'reset']);
+    Route::post('/forgot-password', [NewPasswordController::class, 'forgotPassword'])
+    ->middleware("guest")->name('password.email');
+
+    Route::post('/reset-password', [NewPasswordController::class, 'reset'])
+    ->middleware('guest')->name('password.reset');
 
     Route::group([
         'prefix'=> 'post',

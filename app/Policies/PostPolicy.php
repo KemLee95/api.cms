@@ -41,7 +41,7 @@ class PostPolicy
     {
         //
 
-        return ($user->hasPermission('review_post') && $post->status === PostStatus::STATUS_PUBLISHED) 
+        return ($post->status === PostStatus::STATUS_PUBLISHED) || ($post->status === PostStatus::STATUS_DRAFT)
         || ($user && ( $user->id == $post->user_id));
     }
 

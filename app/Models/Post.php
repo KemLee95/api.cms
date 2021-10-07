@@ -79,12 +79,15 @@ class Post extends ModelBase {
       ->orWhereHas("post_status", function($sql){
         $sql->where("post_status.deleted_at", null);
         $sql->where("post_status.name", PostStatus::STATUS_PUBLISHED);
+        $sql->orWhere("post_status.name", PostStatus::STATUS_DRAFT);
+
       });
     }
 
     $posts->whereHas("post_status", function($sql){
       $sql->where("post_status.deleted_at", null);
       $sql->where("post_status.name", PostStatus::STATUS_PUBLISHED);
+      $sql->orWhere("post_status.name", PostStatus::STATUS_DRAFT);
     });
     return $posts->paginate($paginate);
   }

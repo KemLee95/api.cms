@@ -75,12 +75,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function sendPasswordResetNotification($token) {
-        $url = env('APP_URL') .'api/v1/' .'reset-password?token=' . $token;
+        $url = env('CLIENT_URL') .'auth/' .'reset-password?token=' . $token;
         $this->notify(new ResetPasswordNotification($url));
     }
 
     public function sendEmailVerificationNotification(){
-        $this->notify(new VerifyEmail);
+        $this->notify(new VerifyEmail());
     }
 
     public static function getUserList($req, $paginate = 10) {

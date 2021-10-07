@@ -16,6 +16,7 @@ class NewPasswordController extends ControllerBase {
 
     \Log::info("NewPasswordController: handle forgot password");
     try {
+
       $input = $req->all();
       $validator = Validator::make($input, [
         'email' => 'required',
@@ -28,18 +29,19 @@ class NewPasswordController extends ControllerBase {
       }
 
       $status = Password::sendResetLink($req->only("email"));
+
       if($status == Password::RESET_LINK_SENT) {
         return response() -> json([
-          "status" => __($status)
+          "success" => true,
+          "message" => __($status),
         ],200);
       }
-
       throw ValidationException::withMessages([
         'email' => [trans($status)],
       ]);
 
     } catch (\Exception $e) {
-        \Log::error("NewPasswordController: can't handel forgot password", ['eror message' => $e->getMessage()]);
+        \Log::error("NewPasswordController: can't handle forgot password", ['eror message' => $e->getMessage()]);
         report($e);
         return response()->json([
             'success' => false,
@@ -57,7 +59,7 @@ class NewPasswordController extends ControllerBase {
       $validator = Validator::make($input, [
         'token' => 'required',
         'email' => 'required',
-        'password' => ['required', 'confirmed', RulesPassword::defaults()]
+        'password' => ['required', 'confirmed']
       ]);
       if($validator->fails()) {
         return response()->json([
@@ -68,10 +70,9 @@ class NewPasswordController extends ControllerBase {
 
       $status = Password::reset($req->only('email', 'password', 'password_confirmation', 'token'), function($user) use($req) {
         $user->forceFill([
-          'password' => Hash::make($request->password),
-          'remember_token' => Str::random(60),
-        ])->save();
-        $user->token()->delete();
+          'password' => Hash::make($req->password)
+        ])->setRememberToken(Str::random(60));
+        $user->save();
 
         event(new PasswordReset($user));
       });
@@ -84,7 +85,7 @@ class NewPasswordController extends ControllerBase {
         ], 200);
       }
 
-      return response([
+      return response() ->json([
         "success" => false,
         'message'=> __($status),
         "message_title" => "Request failed"

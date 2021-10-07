@@ -64,6 +64,7 @@ class AuthController extends ControllerBase {
       }
 
       return response()->json([
+          "success" => false,
           'message_title'=> 'Unauthorised',
           'message'=>'The user name or password is incorrect!',
           'message_code'=> 401

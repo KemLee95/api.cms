@@ -26,7 +26,8 @@ Route::group([
 
       Route::get('post-list', 'PostApi@getPostList');
       Route::get('reader-tracking', 'ReaderCounterApi@tracking');
-
+      Route::get('posts-being-edited', 'PostsBeingEditedApi@edited');
+      Route::get('editable-post', 'PostsBeingEditedApi@edited');
     });
 
     Route::group([

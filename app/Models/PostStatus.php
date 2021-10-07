@@ -15,6 +15,7 @@ class PostStatus extends ModelBase {
   
   const STATUS_UNPUBLISHED = 'unpublished';
   const STATUS_PUBLISHED = 'published';
+  const STATUS_DRAFT = 'draft';
 
   public function posts() {
     return $this->hasOne(Post::class, 'post_id', 'id');
