@@ -11,6 +11,8 @@ use App\Models\PostDetail;
 use App\Models\PostStatus;
 use App\Models\Category;
 use App\Models\User;
+use App\Models\PostsBeingEdited;
+
 
 class PostApi extends ApiBase {
 
@@ -102,18 +104,39 @@ class PostApi extends ApiBase {
           ], 403);
         }
 
+        $postsBeingEdited = PostsBeingEdited::where("deleted_at", null)->where("post_id", $req->id)->first();
+        if(!empty($postsBeingEdited) && Auth::id() !== $postsBeingEdited->user_id) {
+          return response()->json([
+            "success" => false,
+            "message" => "The post is being edited by an other!",
+            "message_title" => "Request failed"
+          ], 409);
+        }
+
+        if($post->status === PostStatus::STATUS_DRAFT && $req->status !== PostStatus::STATUS_DRAFT 
+          && Auth::id() !== $post->user_id) {
+            return response()->json([
+              "success" => false,
+              "message" => "You don't have the permisson to change the status of the post",
+              "message_title" => "Request failed"
+            ], 409);
+        }
+
         $oldPostDetail = PostDetail::where("deleted_at", null)->where("post_id", $post->id)->first();
         $newPostDetail = PostDetail::savePostDetail($post->id, $req);
         if(!empty($newPostDetail)) {
           $deletePostDetail = PostDetail::find($oldPostDetail->id)->delete();
         }
-
         $oldPostStatus = PostStatus::where("deleted_at", null)->where("post_id", $post->id)->first();
         $newPostStatus = PostStatus::savePostStatus($post->id, $req);
         if(!empty($newPostStatus)) {
           $deletePostStatus = PostStatus::find($oldPostStatus->id)->delete();
         }
         $post->update();
+
+        if(!empty($postsBeingEdited)) {
+          $postsBeingEdited->delete();
+        }
 
         return response() -> json([
           "success"=> true,

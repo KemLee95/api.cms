@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 use App\Models\PostStatus;
 use App\Models\ReaderCounter;
 use Carbon\Carbon;
-
+use App\Models\PostsBeingEdited;
 class Post extends ModelBase {
   
   public $connection = 'mysql';
@@ -27,6 +27,10 @@ class Post extends ModelBase {
 
   public function reader_counter() {
     return $this->hasMany(ReaderCounter::class, "post_id", "id");
+  }
+
+  public function editing_user() {
+    return $this->hasOneThrough(User::class, PostsBeingEdited::class, 'post_id', 'id', 'id', 'user_id');
   }
 
   public static function getPostList(Request $req, $paginate = 5) {
@@ -110,6 +114,10 @@ class Post extends ModelBase {
         $join->on("categories.id", "categories.id");
         $join->where("categories.deleted_at", null);
       });
+    })
+    ->with("editing_user", function($sql){
+      $sql->where("users.deleted_at", null);
+      $sql->select('users.id', "users.user_name");
     })
     ->select(
       "posts.id",
