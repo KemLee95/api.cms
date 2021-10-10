@@ -122,7 +122,7 @@ class Post extends ModelBase {
     ->select(
       "posts.id",
       "posts.user_id",
-      "users.name as user_name",
+      "users.user_name as user_name",
       "post_detail.title as title",
       "post_detail.content as content",
       "post_status.name as status",

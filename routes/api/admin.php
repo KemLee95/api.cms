@@ -21,7 +21,8 @@ Route::group([
     Route::group([
       'prefix' => 'post'
     ], function(){
-      Route::post('delete-account', 'UserApi@deleteUser');
+      Route::post('update-account', 'UserApi@updateAccount');
+      Route::post('delete-account', 'UserApi@deleteAccount');
     });
   });
 });

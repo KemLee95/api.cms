@@ -94,6 +94,10 @@ class User extends Authenticatable implements MustVerifyEmail
                 $sql->select("permissions.id", "permissions.name");
             });
         })
+        ->leftJoin("user_status", function($join){
+            $join->where("user_status.deleted_at", null);
+            $join->on("user_status.user_id", "users.id");
+        })
         ->select(
             "users.id",
             "users.name",
@@ -101,7 +105,8 @@ class User extends Authenticatable implements MustVerifyEmail
             "users.email",
             "users.created_at",
             "users.updated_at",
-            "users.email_verified_at"
+            "users.email_verified_at",
+            "user_status.state as state"
         );
         return $users->paginate($paginate);
     }
@@ -122,7 +127,7 @@ class User extends Authenticatable implements MustVerifyEmail
             "users.email",
             "users.created_at",
             "users.updated_at",
-            "users.email_verified_at"
+            "users.email_verified_at",
         );
         return $users->first();
     }

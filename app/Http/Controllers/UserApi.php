@@ -142,7 +142,7 @@ class UserApi extends ApiBase {
     }
   }
 
-  public function deleteUser(Request $req) {
+  public function deleteAccount(Request $req) {
     \Log::info("UserApi: get the user info");
     try {
 
@@ -164,9 +164,9 @@ class UserApi extends ApiBase {
         ], 403);
       }
       
-      $oldUserStatus = UserStatus::where("deleted_at", null)->find($req->user_id);
+      $oldUserStatus = UserStatus::where("deleted_at", null)->where("user_id", $req->user_id)->first();
       $newUserStatus = UserStatus::saveUserStatus($req->user_id, UserStatus::DISABLED_STATE);
-      if(!empty($newUserStatus)) {
+      if($newUserStatus && $oldUserStatus) {
         $oldUserStatus->delete();
       }
 
@@ -226,7 +226,66 @@ class UserApi extends ApiBase {
         }
         $user->save();
         $oldRoleUser = RoleUser::where("deleted_at", null)->where("user_id", $user->id)->pluck("id");
-        $roleIdList = json_decode($req->role_id);
+        $roleIdList = $req->role_id;
+        for($idx = 0; $idx < count($roleIdList); $idx++){
+          RoleUser::saveRoleUser($roleIdList[$idx], $user->id);
+        }
+        for($idx = 0; $idx < count($oldRoleUser); $idx++) {
+          RoleUser::find($oldRoleUser[$idx])->delete();
+        }
+      }
+
+      return response()->json([
+        "success" => true,
+        "message" => "Update user info successfuly!",
+        "message_title" => "Successful"
+      ],200);
+
+    } catch (\Exception $e) {
+        \Log::error("UserApi: can't update the user info", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
+  }
+
+  public function updateAccount(Request $req) {
+    
+    \Log::info("UserApi: update the user info");
+    try {
+      $validator = Validator::make($req->all(), [
+        'user_id' => 'required',
+        "name" => 'required',
+        'user_name' => 'required',
+        'email' => 'required|email',
+        'role_id' => 'required',
+      ]);
+
+      if($validator->fails()) {
+        return response()->json([
+          "success"=> false,
+          'errors'=> $validator->errors()->toArray(),
+        ], 401);
+      }
+
+      $user =  User::find($req->user_id);
+      if(Auth::user()->can("update", $user)) {
+        $user->name = $req->name;
+        $user->user_name = $req->user_name;
+        
+        $user->email = $req->email;
+        $user->created_at = now();
+        if($user->email !== $req->email) {
+          $user->email = $req->email;
+          $user->email_verified_at = null;
+        }
+        $user->save();
+        $oldRoleUser = RoleUser::where("deleted_at", null)->where("user_id", $user->id)->pluck("id");
+        
+        $roleIdList = $req->role_id;
         for($idx = 0; $idx < count($roleIdList); $idx++){
           RoleUser::saveRoleUser($roleIdList[$idx], $user->id);
         }

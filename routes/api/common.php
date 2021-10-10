@@ -11,13 +11,12 @@ Route::group([
 
     Route::get('post-list', 'PostApi@getPostList');
     Route::get('category-list', 'CategoryApi@getCategories');
-    Route::get('post-detail/{id}', 'PostApi@getPostDetail');
+    Route::get('published-post-detail/{id}', 'PostApi@getPublishedPostDetail');
   });
 
   Route::group([
     'prefix'=> 'auth',
     'middleware' => ['auth:api'],
-
   ], function(){
 
     Route::group([
@@ -25,6 +24,7 @@ Route::group([
     ],function(){
 
       Route::get('post-list', 'PostApi@getPostList');
+      Route::get('post-detail/{id}', 'PostApi@getPostDetail');
       Route::get('reader-tracking', 'ReaderCounterApi@tracking');
       Route::get('posts-being-edited', 'PostsBeingEditedApi@edited');
       Route::get('set-editable-post', 'PostsBeingEditedApi@setEditable');

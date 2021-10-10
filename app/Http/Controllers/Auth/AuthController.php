@@ -30,7 +30,7 @@ class AuthController extends ControllerBase {
           'errors'=> $validator->errors()->toArray(),
         ], 401);
       }
-
+      
       $input['remember_me'] = isset($input['remember_me']) ? true : false;
       $credentials = $req->validate([
         'user_name' => 'required',
@@ -41,6 +41,16 @@ class AuthController extends ControllerBase {
       if($login){
         
         $user = Auth::user();
+
+        $userStatus = UserStatus::where("deleted_at", null)->where("user_id", $user->id)->first();
+        if(!$userStatus || $userStatus && $userStatus->state == UserStatus::DISABLED_STATE) {
+          return response() ->json([
+            "success" => false,
+            "message" => "The account had beend disabled, please contact with administrator",
+            "message_title" => "Request failed"
+          ], 403);
+        }
+
         $success = User::select("id", "user_name")->find($user->id);
         $success->logout = now()->addYear(1);
 

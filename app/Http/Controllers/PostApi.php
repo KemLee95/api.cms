@@ -26,6 +26,7 @@ class PostApi extends ApiBase {
       $input = $req->all();
 
       $post = Post::getPostDetail($id);
+
       if(Auth::user() && Auth::user()->cannot('view', $post)) {
         return response() -> json([
           "success" => false,
@@ -33,9 +34,61 @@ class PostApi extends ApiBase {
           "message" => "Please contact with administrator!",
         ],403);
       }
+
+      if(!$post) {
+        return response()->json([
+          "success" => false,
+          "message" => "The post is not exist",
+          "message_title" => "Request failed"
+        ]);
+      }
+      $canUpdate = Auth::user() && Auth::user()->can('update', $post) || $post->status == PostStatus::STATUS_DRAFT;
+      $editabled = !PostsBeingEdited::where("deleted_at", null)->where("post_id", $id)->first();
+
       return response()->json([
         "success"=> true,
         "post" =>$post,
+        "canUpdate" => $canUpdate && $editabled
+      ], 200);
+
+    } catch (\Exception $e) {
+        \Log::error("PostApi: can't get the post detail", ['eror message' => $e->getMessage()]);
+        report($e);
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred, please contact with administrator!',
+            'message_title' => "Request failed"
+        ], 400 );
+    }
+  }
+
+  public function getPublishedPostDetail($id, Request $req) {
+    \Log::info("PostApi: get the post detail");
+    try {
+      $input = $req->all();
+
+      $post = Post::getPostDetail($id);
+
+      if($post->status == 'unpublished') {
+        return response() -> json([
+          "success" => false,
+          "message" => "Please login first to access the post", 
+          "message_title" => "Request failed"
+        ], 403);
+      }
+
+      if(!$post) {
+        return response()->json([
+          "success" => false,
+          "message" => "The post is not exist",
+          "message_title" => "Request failed"
+        ]);
+      }
+
+      return response()->json([
+        "success"=> true,
+        "post" =>$post,
+        "canUpdate" => false
       ], 200);
 
     } catch (\Exception $e) {
@@ -121,12 +174,12 @@ class PostApi extends ApiBase {
         $oldPostDetail = PostDetail::where("deleted_at", null)->where("post_id", $post->id)->first();
         $newPostDetail = PostDetail::savePostDetail($post->id, $req);
         if(!empty($newPostDetail)) {
-          $deletePostDetail = PostDetail::find($oldPostDetail->id)->delete();
+          PostDetail::find($oldPostDetail->id)->delete();
         }
         $oldPostStatus = PostStatus::where("deleted_at", null)->where("post_id", $post->id)->first();
         $newPostStatus = PostStatus::savePostStatus($post->id, $req);
         if(!empty($newPostStatus)) {
-          $deletePostStatus = PostStatus::find($oldPostStatus->id)->delete();
+          PostStatus::find($oldPostStatus->id)->delete();
         }
         $post->update();
 
@@ -199,7 +252,7 @@ class PostApi extends ApiBase {
       $postDetail = PostDetail::where("deleted_at", null)->where("post_id", $req->post_id)->first();
       $postStatus = PostStatus::where("deleted_at", null)->where("post_id", $req->post_id)->first();
 
-      if(!empty($post) && !empty($postDetail) && !empty($postStatus)) {
+      if($post && $postDetail && $postStatus) {
         Post::find($post->id)->delete();
         PostDetail::find($postDetail->id)->delete();
         PostStatus::find($postStatus->id)->delete();
