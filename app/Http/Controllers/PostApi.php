@@ -33,11 +33,9 @@ class PostApi extends ApiBase {
           "message" => "Please contact with administrator!",
         ],403);
       }
-      $categories = Category::where("deleted_at", null)->select("id", "name")->get();
       return response()->json([
         "success"=> true,
         "post" =>$post,
-        "categories" =>$categories
       ], 200);
 
     } catch (\Exception $e) {
@@ -56,12 +54,10 @@ class PostApi extends ApiBase {
     try {
 
       $pagination = Post::getPostList($req);
-      $categories =  Category::where("deleted_at", null)->select("id", "name")->get();
 
       return response()->json([
         "success" => true,
         "pagination" => $pagination,
-        "categories" =>$categories
       ], 200);
 
     } catch (\Exception $e) {
