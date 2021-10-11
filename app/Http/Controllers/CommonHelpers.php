@@ -16,4 +16,7 @@ class CommonHelpers {
   public static function getUniqueId() {
     return strval(uniqid()) . strval(time());
   }
+  public static function getUniqueCode() {
+    return strval(uniqid());
+  }
 }

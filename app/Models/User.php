@@ -74,6 +74,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserLogin::class, "user_id", "id");
     }
 
+    public function user_status() {
+        return $this->hasOne(UserStatus::class, 'user_id', 'id');
+    }
+
     public function sendPasswordResetNotification($token) {
         $url = env('CLIENT_URL') .'auth/' .'reset-password?token=' . $token;
         $this->notify(new ResetPasswordNotification($url));

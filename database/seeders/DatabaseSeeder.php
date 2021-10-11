@@ -2,6 +2,10 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\EventSeeder;
+use Database\Seeders\UserSeeder;
+use Database\Seeders\PostSeeder;
+
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // UserSeeder::class,
             // PostSeeder::class,
+            // EventSeeder::class
         ]);
     }
 }

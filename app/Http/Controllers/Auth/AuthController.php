@@ -51,7 +51,7 @@ class AuthController extends ControllerBase {
           ], 403);
         }
 
-        $success = User::select("id", "user_name")->find($user->id);
+        $success = User::select("id", "user_name","email_verified_at")->find($user->id);
         $success->logout = now()->addYear(1);
 
         $isAdmin = User::find($user->id)->hasRole('admin');
