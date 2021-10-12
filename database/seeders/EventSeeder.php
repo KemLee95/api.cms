@@ -10,6 +10,7 @@ class EventSeeder extends Seeder {
       [
         "name" => "siêu sale 10.10",
         "description"=> "Chương trình đem đến hàng triệu voucher miễn phí vận chuyển, mua sắm hàng hiệu từ 100.000 đồng, cơ hội trúng xe hơi cùng nhiều ưu đãi từ các thương hiệu hàng đầu.",
+        "status" => "enabled",
         "created_at" => now(),
         "updated_at" => now(),
       ]
@@ -21,6 +22,7 @@ class EventSeeder extends Seeder {
         "status" => "enabled",
         "percentage_decrease" => 10,
         "maximum_quantity" => 50,
+        "available_quantity" => 50,
         "expiry_date" => now()->addDay(30),
         "unique_code"=> strval(uniqid()),
         "created_at" => now(),
@@ -31,6 +33,7 @@ class EventSeeder extends Seeder {
         "status" => "enabled",
         "percentage_decrease" => 25,
         "maximum_quantity" => 20,
+        "available_quantity" => 20,
         "expiry_date" => now()->addDay(30),
         "unique_code"=> strval(uniqid()),
         "created_at" => now(),
@@ -41,6 +44,7 @@ class EventSeeder extends Seeder {
         "status" => "enabled",
         "percentage_decrease" => 45,
         "maximum_quantity" => 10,
+        "available_quantity" => 10,
         "expiry_date" => now()->addDay(30),
         "unique_code"=> strval(uniqid()),
         "created_at" => now(),

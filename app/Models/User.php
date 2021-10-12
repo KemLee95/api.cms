@@ -78,6 +78,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserStatus::class, 'user_id', 'id');
     }
 
+    public function voucher_user() {
+        return $this->belongsToMany(Voucher::class, 'voucher_user', 'user_id', 'voucher_id')
+        ->where([
+            ["voucher_user.deleted_at", null],
+            ["voucher_user.status", VoucherUser::ENABLED_STATUS]
+        ]);
+    }
+
     public function sendPasswordResetNotification($token) {
         $url = env('CLIENT_URL') .'auth/' .'reset-password?token=' . $token;
         $this->notify(new ResetPasswordNotification($url));

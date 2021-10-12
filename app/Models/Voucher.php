@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use App\Models\ModelBase;
+use Illuminate\Support\Facades\Auth;
 
 class Voucher extends ModelBase{
   public $connection = 'mysql';
@@ -10,6 +11,20 @@ class Voucher extends ModelBase{
   const DISABLED_STATUS = 'disabled';
   const ENABLED_STATUS = 'enabled';
 
+  protected $fillable = [
+    'event_id', 
+    'percentage_decrease', 
+    'maximum_quantity', 
+    'available_quantity', 
+    'expiry_date', 
+    'status', 
+    'unique_code'
+  ];
+  
+  protected $casts = [
+    "expiry_date" => 'datetime'
+  ];
+
   public function event() {
     return $this->belongsTo(Event::class, 'event_id', 'id');
   }
@@ -17,6 +32,10 @@ class Voucher extends ModelBase{
   public function users() {
     return $this->belongsToMany(User::class, 'voucher_user', 'voucher_id', 'user_id')
     ->where("voucher_user.deleted_at", null);
+  }
+
+  public function voucher_user() {
+    return $this->hasMany(VoucherUser::class, "id", "user_id");
   }
 
   public static function getVoucherPartial($req, $paninate = 1) {
@@ -33,7 +52,8 @@ class Voucher extends ModelBase{
         "id", 
         "event_id", 
         "percentage_decrease", 
-        "maximum_quantity", 
+        "maximum_quantity",
+        "available_quantity",
         "expiry_date", "status", 
         "unique_code"
     )
@@ -64,5 +84,42 @@ class Voucher extends ModelBase{
     );
 
     return $voucherSql->find($req->voucher_id);
+  }
+
+  public static function getVoucherList($req, $paginate = 5) {
+
+    if($req->has('paginate')) {
+      $paginate = $req->paginate;
+    }
+
+    $sql = Voucher::whereNull("vouchers.deleted_at")
+    ->where("vouchers.status", Voucher::ENABLED_STATUS)
+    ->whereHas("event", function($sql){
+      $sql->whereNull("events.deleted_at");
+      $sql->where("events.status", Event::ENABLED_STATUS);
+    })
+    ->whereHas("users", function($sql) {
+      $sql->where("users.id", Auth::id());
+      $sql->whereHas("voucher_user");
+    })
+    ->leftJoin("events", function($join){
+      $join->whereNull("events.deleted_at");
+      $join->on("events.id", "vouchers.event_id");
+    })
+    ->select(
+      "events.name as event_name",
+      "vouchers.id",
+      "vouchers.event_id",
+      "vouchers.percentage_decrease",
+      "vouchers.maximum_quantity",
+      "vouchers.available_quantity",
+      "vouchers.expiry_date"
+    );
+    
+    if($req->has("voucher_id")){
+      $sql->where("id", $req->voucher_id);
+    }
+    
+    return $sql->paginate($paginate);
   }
 }

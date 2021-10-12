@@ -7,6 +7,11 @@ class VoucherUser extends ModelBase {
   public $table = 'voucher_user';
   public $timestap = true;
 
+  const DISABLED_STATUS = 'disabled';
+  const ENABLED_STATUS = 'enabled';
+
+  protected $fillable = ["voucher_id", "user_id", "status"];
+
   public function users(){
     return $this->hasOne(User::class, 'id', 'user_id');
   }

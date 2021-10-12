@@ -28,6 +28,12 @@ Route::group([
       Route::get('reader-tracking', 'ReaderCounterApi@tracking');
       Route::get('posts-being-edited', 'PostsBeingEditedApi@edited');
       Route::get('set-editable-post', 'PostsBeingEditedApi@setEditable');
+
+      Route::get('count-enabled-events', 'EventApi@countEnabledEvents');
+      Route::get('event-partial', 'EventApi@getEventPartial');
+      Route::get('users-voucher-list', 'EventApi@getVoucherList');
+      Route::get('voucher-for-user', 'EventApi@getVoucherForUser');
+      
     });
 
     Route::group([
