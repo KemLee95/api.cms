@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Event extends ModelBase {
 
@@ -49,7 +50,6 @@ class Event extends ModelBase {
     if($req->has('paginate')) {
       $paginate = $req->paginate;
     }
-
     $sql = Event::whereNull("events.deleted_at")->where("events.status", Event::ENABLED_STATUS)
     ->select("events.id", "events.name")
     ->with("vouchers", function($sql){
@@ -68,7 +68,6 @@ class Event extends ModelBase {
         "vouchers.unique_code",
       );
     });
-
-    return $sql->paginate($paginate);
+    return $sql->lockForUpdate()->paginate($paginate);
   }
 }

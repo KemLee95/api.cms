@@ -176,7 +176,7 @@ class EventApi extends ApiBase {
     try {
       $input = $req->all();
 
-      $total =Event::whereNull("deleted_at")->where("status", Event::ENABLED_STATUS)->count();
+      $total = Event::lockForUpdate()->whereNull("deleted_at")->where("status", Event::ENABLED_STATUS)->count();
 
       return response()->json([
         "success"=> true,
@@ -253,12 +253,12 @@ class EventApi extends ApiBase {
       
       $voucher = Voucher::whereNull("deleted_at")
       ->where("status", Voucher::ENABLED_STATUS)
-      ->where("available_quantity", ">", 0)
       ->where("id", $req->voucher_id)
       ->whereHas("event", function($sql){
         $sql->whereNull("deleted_at");
         $sql->where("status", Event::ENABLED_STATUS);
       })
+      ->lockForUpdate()
       ->get();
 
       if(!count($voucher)) {
@@ -266,7 +266,7 @@ class EventApi extends ApiBase {
           "success" => false,
           "message" => "The post can not access",
           "message_title" => "Request failed"
-        ]);
+        ], 406);
       }
 
       $event = Event::whereNull("deleted_at")
@@ -287,35 +287,37 @@ class EventApi extends ApiBase {
           "success" => false,
           "message" => "You can only get 1 and only 1 voucher types in " . strtoupper($event->name),
           "message_title" => "Request failed"
-        ]);
+        ], 406);
       }
 
-      $available = Voucher::whereNull("deleted_at")->where("id",$req->voucher_id)->pluck("available_quantity")->first();
+      $available = Voucher::lockForUpdate()->whereNull("deleted_at")
+      ->where("id",$req->voucher_id)->pluck("available_quantity")->first();
       if($available == 0) {
         return response()->json([
           "success" => false,
-          "message" => "The available total value of the voucher is to be used",
+          "message" => "The available total value of the voucher is to be used. There is no more available voucher.",
           "message_title" => "Request failed"
-        ], 400);
+        ], 406);
       }
+      $newVoucherUser = array(
+        "voucher_id" => $req->voucher_id,
+        "user_id" => Auth::id(),
+        "status" => VoucherUser::ENABLED_STATUS,
+        "created_at" => now(),
+        "updated_at" => now()
+      );
 
-      DB::transaction(function () use($req, $available) {
+      DB::transaction(function () use($req, $newVoucherUser) {
 
-        $newVoucherUser = array(
-          "voucher_id" => $req->voucher_id,
-          "user_id" => Auth::id(),
-          "status" => VoucherUser::ENABLED_STATUS
-        );
-
-        Voucher::whereNull("deleted_at")
-        ->find($req->voucher_id)->update(["available_quantity" => $available -1]);
-
-        VoucherUser::create($newVoucherUser);
+        Voucher::sharedLock()->whereNull("deleted_at")->find($req->voucher_id)->decrement("available_quantity", 1);
+        DB::table('voucher_user')->sharedLock()->upsert($newVoucherUser, [
+          "voucher_id", "user_id", "status"
+        ]);
       });
 
       return response()->json([
         "success"=> true,
-        "message"=> "You have been getted the voucher",
+        "message"=> "You have been gotten the voucher",
         "message_title" => "Successful"
       ], 200);
 
@@ -340,7 +342,7 @@ class EventApi extends ApiBase {
         "status" => 'required',
         "percentage_decrease" => 'required',
         "maximum_quantity" => 'required',
-        "expiry_date" => 'required'
+        "expiry_date" => 'required',
       ]);
       if($validator->fails()) {
         return response()->json([
@@ -376,16 +378,24 @@ class EventApi extends ApiBase {
             ], 400);
           }
         }
-        DB::beginTransaction();
-
+        
         $oldVoucher = Voucher::whereNull("deleted_at")
         ->where("event_id", $req->event_id)->pluck("id");
-
+        
+        $voucherId = $req->has("voucher_id") ? $req->voucher_id : [];
+        $updateEvent = array(
+          "name" => $req->name,
+          "description"=>$req->description,
+          "status"=> $req->status
+        );
+        
+        DB::beginTransaction();
         for($idx = 0; $idx < count($oldVoucher); $idx ++){
           $id = $oldVoucher[$idx];
-          $voucherItem = Voucher::whereNull("deleted_at")->find($id);
-          $countUser = VoucherUser::whereNull("deleted_at")->where("voucher_id", $id)->count();
-          if(!in_array($id, $req->voucher_id)) {
+          $voucherItem = Voucher::lockForUpdate()->whereNull("deleted_at")->find($id);
+          $countUser = VoucherUser::lockForUpdate()->whereNull("deleted_at")
+          ->where("voucher_id", $id)->count();
+          if(!in_array($id, $voucherId)) {
             if($countUser) {
               return response()->json([
                 "success" => false,
@@ -393,10 +403,12 @@ class EventApi extends ApiBase {
                 "message_title" => "Reuqest failed"
               ]);
             } else {
+              // Delete
               Voucher::whereNull("deleted_at")->find($id)->delete();
             }
           } else {
-            $position = array_search($id, $req->voucher_id);
+            // Update
+            $position = array_search($id, $voucherId);
             if(($req->percentage_decrease[$position] != $voucherItem->percentage_decrease) && $countUser) {
               DB::rollBack();
               return response()->json([
@@ -430,13 +442,14 @@ class EventApi extends ApiBase {
               "available_quantity"=> $req->maximum_quantity[$position] - $countUser,
               "expiry_date" => $req->expiry_date[$position],
             );
+
             $voucherItem->update($update);
           }
         }
 
-        if(count($req->percentage_decrease) > count($req->voucher_id)) {
-          $position = count($req->percentage_decrease) - count($req->voucher_id) + 1;
+        if(count($req->percentage_decrease) > count($voucherId)) {
 
+          $position = count($voucherId);
           $per = array_slice($req->percentage_decrease, $position);
           $max = array_slice($req->maximum_quantity, $position);
           $expiry = array_slice($req->expiry_date, $position);
@@ -453,15 +466,9 @@ class EventApi extends ApiBase {
               "updated_at" => now(),
             );
           }, $per, $max, $expiry);
+
           Voucher::insert($new);
-
         }
-
-        $updateEvent = array(
-          "name" => $req->name,
-          "description"=>$req->description,
-          "status"=> $req->status
-        );
 
         Event::where([
           ["deleted_at" ,"=", null],
@@ -511,14 +518,14 @@ class EventApi extends ApiBase {
       ], 200);
 
     } catch (\Exception $e) {
-        \Log::error("EventApi: can't save event", ['eror message' => $e->getMessage()]);
-        report($e);
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred, please contact with administrator!',
-            'message_title' => "Request failed"
-        ], 400 );
+      DB::rollBack();
+      \Log::error("EventApi: can't save event", ['eror message' => $e->getMessage()]);
+      report($e);
+      return response()->json([
+          'success' => false,
+          'message' => 'An error occurred, please contact with administrator!',
+          'message_title' => "Request failed"
+      ], 400);
     }
   }
 }

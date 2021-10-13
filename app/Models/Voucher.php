@@ -77,13 +77,14 @@ class Voucher extends ModelBase{
       "vouchers.event_id",
       "events.name as event_name",
       "vouchers.percentage_decrease",
+      "vouchers.maximum_quantity",
       "vouchers.expiry_date",
       "vouchers.status",
       "vouchers.unique_code",
       "vouchers.created_at"
     );
 
-    return $voucherSql->find($req->voucher_id);
+    return $voucherSql->lockForUpdate()->find($req->voucher_id);
   }
 
   public static function getVoucherList($req, $paginate = 5) {
@@ -119,7 +120,6 @@ class Voucher extends ModelBase{
     if($req->has("voucher_id")){
       $sql->where("id", $req->voucher_id);
     }
-    
-    return $sql->paginate($paginate);
+    return $sql->lockForUpdate()->paginate($paginate);
   }
 }

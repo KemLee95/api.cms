@@ -41,6 +41,6 @@ class VoucherUser extends ModelBase {
       $sql->where("voucher_user.user_id", $req->user_id);
     }
     
-    return $sql->paginate($paginate);
+    return $sql->lockForUpdate()->paginate($paginate);
   }
 }
