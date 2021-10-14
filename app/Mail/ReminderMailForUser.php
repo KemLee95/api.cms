@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -11,16 +12,16 @@ class ReminderMailForUser extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $name;
+    public $user;
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct($name)
+    public function __construct(User $user)
     {
         //
-        $this->name = $name;
+        $this->user = $user;
     }
 
     /**
@@ -29,8 +30,8 @@ class ReminderMailForUser extends Mailable
      * @return $this
      */
     public function build()
-    {
-        $name = $this->name;
-        return $this->view('mails.reminder-user', compact("name"));
+    {   
+        $user = $this->user;
+        return $this->view('mails.reminder-user', compact("user"));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\OutgoingEmailTracking;
 use Database\Seeders\EventSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\PostSeeder;
@@ -23,5 +24,6 @@ class DatabaseSeeder extends Seeder
             // PostSeeder::class,
             // EventSeeder::class
         ]);
+        // OutgoingEmailTracking::factory()->count(50)->create();
     }
 }

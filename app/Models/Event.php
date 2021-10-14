@@ -54,11 +54,10 @@ class Event extends ModelBase {
     ->select("events.id", "events.name")
     ->with("vouchers", function($sql){
       $sql->where("vouchers.status", Voucher::ENABLED_STATUS);
-      $sql->with("users", function($sql){
-        $sql->select("users.id");
-        $sql->where("users.id", Auth::id());
-      });
-      $sql->select(
+      $sql->withCasts([
+        "isExist" => 'boolean'
+      ]);
+      $sql->select([
         "vouchers.id",
         "vouchers.event_id",
         "vouchers.percentage_decrease",
@@ -66,7 +65,11 @@ class Event extends ModelBase {
         "vouchers.available_quantity",
         "vouchers.status",
         "vouchers.unique_code",
-      );
+        "isExist" => VoucherUser::selectRaw("id")
+        ->whereNull("deleted_at")
+        ->whereColumn("voucher_id", "vouchers.id")
+        ->where("user_id", Auth::id())
+      ]);
     });
     return $sql->lockForUpdate()->paginate($paginate);
   }

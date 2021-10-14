@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Mail\ReminderMailForUser;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,18 +16,16 @@ class SendReminderMailForUser implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $toAddress;
-    protected $mail;
+    protected $user;
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($toAddress, $mail)
+    public function __construct(User $user)
     {
         //
-        $this->toAddress = $toAddress;
-        $this->mail = $mail;
+        $this->user = $user;
     }
 
     /**
@@ -33,10 +33,14 @@ class SendReminderMailForUser implements ShouldQueue
      *
      * @return void
      */
+
+    public $tries = 3;
+    public $timeout = 60;
+
     public function handle()
     {
         //
-
-        Mail::to($this->toAddress)->send($this->mail);
+        $email = new ReminderMailForUser($this->user);
+        Mail::to($this->user->email)->send($email);
     }
 }

@@ -153,12 +153,7 @@ class User extends Authenticatable implements MustVerifyEmail
         ->whereNotNull("users.email_verified_at")
         ->whereDoesntHave('user_login', function($sql){
           $sql->where("created_at", ">", Carbon::yesterday());
-        }, ">=", 1)
-        ->select(
-            "users.id",
-            "users.name as user_name",
-            "users.email",
-        );
+        }, ">=", 1);
         
         return $inactiveUsers->get();
     }

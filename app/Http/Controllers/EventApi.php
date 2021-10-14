@@ -200,7 +200,6 @@ class EventApi extends ApiBase {
       $input = $req->all();
       $data = Event::getEventPartial($req);
       return response()->json([
-        Auth::id(),
         "success"=> true,
         "data" => $data
       ], 200);

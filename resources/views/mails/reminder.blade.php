@@ -1,8 +1,9 @@
 <body>
   <div>
-    Dear {{isset($user->name) && $user->name ? $user->name : "guys"}},
+    Dear guys,
+  </div>
   <div>
-    Long time no see, please sign in usually to get more new posts.
+    Long time no see!
   </div>
   <div>
       Thanks and Best Regards
@@ -22,5 +23,4 @@
   <div>
     Email: ltkem2103@gmail.com
   </div>
-  
 </body>
